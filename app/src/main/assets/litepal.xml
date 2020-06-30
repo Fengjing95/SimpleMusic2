@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<litepal>
+<dbname value="MusicDB"/>
+<version value="1"/>
+<list>
+    <mapping class="com.example.musicplayer.useLitepal.LocalMusic"/>
+    <mapping class="com.example.musicplayer.useLitepal.PlayingMusic"/>
+    <mapping class="com.example.musicplayer.useLitepal.MyMusic"/>
+</list>
+</litepal>
