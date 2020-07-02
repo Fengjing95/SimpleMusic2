@@ -16,11 +16,13 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.provider.MediaStore;
 
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
@@ -29,6 +31,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
 import com.bumptech.glide.Glide;
+import com.example.musicplayer.LoadingDialog;
 import com.example.musicplayer.Music;
 import com.example.musicplayer.MusicAdapter;
 import com.example.musicplayer.PlayingMusicAdapter;
@@ -43,7 +46,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class LocalMusicActivity extends AppCompatActivity implements View.OnClickListener{
-
+    private static final String TAG = "LocalMusicActivity";
     private TextView musicCountView;
     private ListView musicListView;
     private TextView playingTitleView;
@@ -55,7 +58,9 @@ public class LocalMusicActivity extends AppCompatActivity implements View.OnClic
     private MusicAdapter adapter;
     private MusicService.MusicServiceBinder serviceBinder;
     private MusicUpdateTask updateTask;
-    private ProgressDialog progressDialog;
+//    private ProgressDialog progressDialog;
+    private LoadingDialog loadingDialog;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -181,6 +186,7 @@ public class LocalMusicActivity extends AppCompatActivity implements View.OnClic
 
         //从数据库获取保存的本地音乐列表
         List<LocalMusic> list = LitePal.findAll(LocalMusic.class);
+        Log.d(TAG, "initActivity: "+list.size());
         for (LocalMusic s:list){
             Music m = new Music(s.songUrl, s.title, s.artist, s.imgUrl, s.isOnlineMusic);
             localMusicList.add(m);
@@ -347,10 +353,14 @@ public class LocalMusicActivity extends AppCompatActivity implements View.OnClic
         // 开始获取, 显示一个进度条
         @Override
         protected void onPreExecute(){
-            progressDialog = new ProgressDialog(LocalMusicActivity.this);
-            progressDialog.setMessage("获取本地音乐中...");
-            progressDialog.setCancelable(false);
-            progressDialog.show();
+//            progressDialog = new ProgressDialog(LocalMusicActivity.this);
+//            progressDialog.setMessage("获取本地音乐中...");
+//            progressDialog.setCancelable(false);
+//            progressDialog.show();
+            loadingDialog = new LoadingDialog(LocalMusicActivity.this);
+            loadingDialog.setMessage("获取本地音乐中...");
+            loadingDialog.setCancelable(false);
+            loadingDialog.show();
         }
 
         // 子线程中获取音乐
@@ -411,7 +421,8 @@ public class LocalMusicActivity extends AppCompatActivity implements View.OnClic
         //任务结束, 关闭进度条
         @Override
         protected void onPostExecute(Void aVoid) {
-            progressDialog.dismiss();
+//            progressDialog.dismiss();
+            loadingDialog.dismiss();
         }
     }
 

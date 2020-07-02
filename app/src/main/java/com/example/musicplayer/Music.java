@@ -21,8 +21,12 @@ public class Music {
     //重写equals方法, 使得可以用contains方法来判断列表中是否存在Music类的实例
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         Music music = (Music) o;
         return Objects.equals(title, music.title);
     }

@@ -21,6 +21,7 @@ import androidx.core.app.ActivityCompat;
 //import android.support.v7.app.AlertDialog;
 //import android.support.v7.app.AppCompatActivity;
 //import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -53,7 +54,7 @@ import java.util.List;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener{
-
+    private static final String TAG = "MainActivity";
     private Toolbar toolbar;
     private ListView musicListView;
     private TextView playingTitleView;
@@ -125,46 +126,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         });
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        musicCountView.setText("累计听歌"+ Integer.toString(Utils.count)+"首");
-        musicAdapter.notifyDataSetChanged(); //刷新列表
-    }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        //清空列表
-        musicList.clear();
-        Glide.with(getApplicationContext()).pauseAllRequests();
-        unbindService(serviceConnection);
-        saveSettings();
-    }
 
-    // 监听组件
-    @Override
-    public void onClick(View v) {
-        switch (v.getId()){
-            case R.id.player:
-                // 进入播放器
-                Intent intent = new Intent(MainActivity.this, PlayerActivity.class);
-                startActivity(intent);
-                overridePendingTransition(R.anim.bottom_in, R.anim.bottom_silent);
-                break;
-            case R.id.play_or_pause:
-                serviceBinder.playOrPause();
-                break;
-            case R.id.playing_list:
-                // 显示正在播放列表
-                showPlayingList();
-                break;
-            default:
-        }
-    }
+
 
     // 初始化活动
     private void initActivity(){
+        Log.d(TAG, "initActivity: 1");
         // 申请读写权限
         ActivityCompat.requestPermissions(MainActivity.this,
                 new String[]{WRITE_EXTERNAL_STORAGE}, 1);
@@ -205,12 +173,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void initMusicList(){
+        Log.d(TAG, "initMusicList: 2");
         //从数据库获取我的音乐
         musicList = new ArrayList<>();
 
         List<MyMusic> list = LitePal.findAll(MyMusic.class);
+        Log.d(TAG, "initMusicList: 2--------"+list.size());
         for (MyMusic s:list){
             Music m = new Music(s.songUrl, s.title, s.artist, s.imgUrl, s.isOnlineMusic);
+
             musicList.add(m);
         }
 
@@ -276,6 +247,26 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 return true;
             }
         });
+    }
+    // 监听组件
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()){
+            case R.id.player:
+                // 进入播放器
+                Intent intent = new Intent(MainActivity.this, PlayerActivity.class);
+                startActivity(intent);
+                overridePendingTransition(R.anim.bottom_in, R.anim.bottom_silent);
+                break;
+            case R.id.play_or_pause:
+                serviceBinder.playOrPause();
+                break;
+            case R.id.playing_list:
+                // 显示正在播放列表
+                showPlayingList();
+                break;
+            default:
+        }
     }
 
     // 显示当前正在播放的音乐
@@ -443,5 +434,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             default:
         }
         return true;
+    }
+    @Override
+    protected void onResume() {
+        super.onResume();
+        musicCountView.setText("累计听歌"+ Integer.toString(Utils.count)+"首");
+        musicAdapter.notifyDataSetChanged(); //刷新列表
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        //清空列表
+        musicList.clear();
+        Glide.with(getApplicationContext()).pauseAllRequests();
+        unbindService(serviceConnection);
+        saveSettings();
     }
 }

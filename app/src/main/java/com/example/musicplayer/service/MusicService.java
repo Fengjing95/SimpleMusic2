@@ -4,13 +4,18 @@ import android.annotation.SuppressLint;
 import android.app.Service;
 import android.content.Intent;
 import android.content.SharedPreferences;
+
+import android.media.AudioFocusRequest;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Binder;
+import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
+
+import androidx.annotation.RequiresApi;
 
 import com.example.musicplayer.Music;
 import com.example.musicplayer.Utils;
@@ -21,7 +26,7 @@ import org.litepal.LitePal;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
+//@RequiresApi(api = Build.VERSION_CODES.O)
 public class MusicService extends Service {
 
     private MediaPlayer player;
@@ -46,19 +51,38 @@ public class MusicService extends Service {
         audioManager = (AudioManager) getSystemService(AUDIO_SERVICE); //获得音频管理服务
     }
 
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        if (player.isPlaying()) {
-            player.stop();
+    // 初始化播放列表
+    private void initPlayList() {
+        playingMusicList = new ArrayList<>();
+        List<PlayingMusic> list = LitePal.findAll(PlayingMusic.class);
+        for (PlayingMusic i : list) {
+            Music m = new Music(i.songUrl, i.title, i.artist, i.imgUrl, i.isOnlineMusic);
+            playingMusicList.add(m);
         }
-        player.release();
-
-        playingMusicList.clear();
-        listenrList.clear();
-        handler.removeMessages(66);
-        audioManager.abandonAudioFocus(audioFocusListener); //注销音频管理服务
+        if (playingMusicList.size() > 0) {
+            currentMusic = playingMusicList.get(0);
+            isNeedReload = true;
+        }
     }
+
+    //当前歌曲播放完成的监听器
+    private MediaPlayer.OnCompletionListener onCompletionListener = new MediaPlayer.OnCompletionListener() {
+
+        @Override
+        public void onCompletion(MediaPlayer mp) {
+
+            Utils.count ++; //累计听歌数量+1
+
+            if (playMode == Utils.TYPE_SINGLE) {
+                //单曲循环
+                isNeedReload = true;
+                playInner();
+            }
+            else {
+                playNextInner();
+            }
+        }
+    };
 
     //对外监听器接口
     public interface OnStateChangeListenr {
@@ -84,6 +108,7 @@ public class MusicService extends Service {
         public void removeMusic(int i) {
             removeMusicInner(i);
         }
+
 
         public void playOrPause(){
             if (player.isPlaying()){
@@ -173,11 +198,18 @@ public class MusicService extends Service {
         playingMusicList.remove(i);
     }
 
+
+
     private void playInner() {
 
         //获取音频焦点
         audioManager.requestAudioFocus(audioFocusListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
-
+//        AudioFocusRequest audioFocusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+//                .setAcceptsDelayedFocusGain(true)
+//                .setOnAudioFocusChangeListener(audioFocusListener)
+////                .setOnAudioFocusChangeListener(audioFocusListener, handler)
+//                .build();
+//        audioManager.requestAudioFocus(audioFocusRequest);
         //如果之前没有选定要播放的音乐，就选列表中的第一首音乐开始播放
         if (currentMusic == null && playingMusicList.size() > 0) {
             currentMusic = playingMusicList.get(0);
@@ -290,38 +322,7 @@ public class MusicService extends Service {
         handler.sendEmptyMessage(66);
     }
 
-    // 初始化播放列表
-    private void initPlayList() {
-        playingMusicList = new ArrayList<>();
-        List<PlayingMusic> list = LitePal.findAll(PlayingMusic.class);
-        for (PlayingMusic i : list) {
-            Music m = new Music(i.songUrl, i.title, i.artist, i.imgUrl, i.isOnlineMusic);
-            playingMusicList.add(m);
-        }
-        if (playingMusicList.size() > 0) {
-            currentMusic = playingMusicList.get(0);
-            isNeedReload = true;
-        }
-    }
 
-    //当前歌曲播放完成的监听器
-    private MediaPlayer.OnCompletionListener onCompletionListener = new MediaPlayer.OnCompletionListener() {
-
-        @Override
-        public void onCompletion(MediaPlayer mp) {
-
-            Utils.count ++; //累计听歌数量+1
-
-            if (playMode == Utils.TYPE_SINGLE) {
-                //单曲循环
-                isNeedReload = true;
-                playInner();
-            }
-            else {
-                playNextInner();
-            }
-        }
-    };
 
     @SuppressLint("HandlerLeak")
     private Handler handler = new Handler() {
@@ -352,6 +353,7 @@ public class MusicService extends Service {
     //焦点控制
     private AudioManager.OnAudioFocusChangeListener audioFocusListener = new AudioManager.OnAudioFocusChangeListener(){
 
+        @Override
         public void onAudioFocusChange(int focusChange) {
             switch(focusChange){
                 case AudioManager.AUDIOFOCUS_LOSS:
@@ -385,4 +387,23 @@ public class MusicService extends Service {
             }
         }
     };
+
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (player.isPlaying()) {
+            player.stop();
+        }
+        player.release();
+
+        playingMusicList.clear();
+        listenrList.clear();
+        handler.removeMessages(66);
+        audioManager.abandonAudioFocus(audioFocusListener); //注销音频管理服务
+//        AudioFocusRequest audioFocusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+//                .setOnAudioFocusChangeListener(audioFocusListener)
+//                .build();
+//        audioManager.abandonAudioFocusRequest(audioFocusRequest);
+    }
 }
