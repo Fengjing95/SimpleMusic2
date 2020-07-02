@@ -12,6 +12,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
@@ -48,7 +49,7 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 public class OnlineMusicActivity extends AppCompatActivity implements View.OnClickListener{
-
+    private static final String TAG = "OnlineMusicActivity";
     private TextView musicCountView;
     private ListView musicListView;
     private TextView playingTitleView;
@@ -356,7 +357,7 @@ public class OnlineMusicActivity extends AppCompatActivity implements View.OnCli
     private void getOlineMusic() {
 
         Request request = new Request.Builder()
-                .url("https://v1.itooi.cn/netease/songList?id=3778678&format=1")
+                .url("http://192.168.1.4:8080/file/getMusic")
                 .build();
         client.newCall(request).enqueue(new Callback() {
             @Override
@@ -372,18 +373,21 @@ public class OnlineMusicActivity extends AppCompatActivity implements View.OnCli
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 String result = response.body().string();
+                Log.d(TAG, "onResponse: "+result);
                 try{
                     JSONObject obj = new JSONObject(result);
                     JSONArray songs = new JSONArray(obj.getString("data"));
-
+                    Log.d(TAG, "onResponse: songs.length"+songs.length());
                     for(int i=0; i<songs.length(); i++){
                         JSONObject song = songs.getJSONObject(i);
 
                         String id = song.getString("id");
-                        String songurl = "https://v1.itooi.cn/netease/url?id=" + id + "&quality=128";
-                        String name = song.getString("name");
-                        String singer = song.getString("singer");
-                        String pic = "https://v1.itooi.cn/netease/pic?id=" + id;
+//                        String songurl = "https://v1.itooi.cn/netease/url?id=" + id + "&quality=128";
+                        String songurl = song.getString("songUrl");
+                        String name = song.getString("title");
+                        String singer = song.getString("artist");
+                        String pic = song.getString("imgUrl");
+//                        String pic = "https://v1.itooi.cn/netease/pic?id=" + id;
 
                         //实例化一首音乐并发送到主线程更新
                         Music music = new Music(songurl, name, singer, pic, true);
