@@ -3,23 +3,21 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="com.example.musicplayer">
 
-<!--    <application-->
-<!--        android:allowBackup="true"-->
-<!--        android:icon="@mipmap/ic_launcher"-->
-<!--        android:label="@string/app_name"-->
-<!--        android:roundIcon="@mipmap/ic_launcher_round"-->
-<!--        android:supportsRtl="true"-->
-<!--        android:theme="@style/AppTheme">-->
-<!--        <activity android:name=".MainActivity">-->
-<!--            <intent-filter>-->
-<!--                <action android:name="android.intent.action.MAIN" />-->
-
-<!--                <category android:name="android.intent.category.LAUNCHER" />-->
-<!--            </intent-filter>-->
-<!--        </activity>-->
-<!--    </application>-->
-    <uses-permission android:name="android.permission.INTERNET"/>
-
+    <!-- <application -->
+    <!-- android:allowBackup="true" -->
+    <!-- android:icon="@mipmap/ic_launcher" -->
+    <!-- android:label="@string/app_name" -->
+    <!-- android:roundIcon="@mipmap/ic_launcher_round" -->
+    <!-- android:supportsRtl="true" -->
+    <!-- android:theme="@style/AppTheme"> -->
+    <!-- <activity android:name=".MainActivity"> -->
+    <!-- <intent-filter> -->
+    <!-- <action android:name="android.intent.action.MAIN" /> -->
+    <!-- <category android:name="android.intent.category.LAUNCHER" /> -->
+    <!-- </intent-filter> -->
+    <!-- </activity> -->
+    <!-- </application> -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <application
@@ -31,7 +29,21 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
-        <activity android:name=".activity.MainActivity"/>
+
+<!--        <receiver-->
+<!--            android:name=".PlayerReceiver"-->
+<!--            android:enabled="true"-->
+<!--            android:exported="true"-->
+<!--            android:process=":player">-->
+<!--            <intent-filter>-->
+<!--                <action android:name="play_pre" />-->
+<!--                <action android:name="play_next" />-->
+<!--                <action android:name="play_pause" />-->
+<!--                <action android:name="play_play" />-->
+<!--            </intent-filter>-->
+<!--        </receiver>-->
+
+        <activity android:name=".activity.MainActivity" />
         <activity android:name=".activity.LocalMusicActivity" />
         <activity android:name=".activity.OnlineMusicActivity" />
         <activity android:name=".activity.PlayerActivity" />
@@ -39,7 +51,7 @@
         <service
             android:name=".service.MusicService"
             android:enabled="true"
-            android:exported="true"/>
+            android:exported="true" />
 
         <activity android:name=".activity.SplashActivity">
             <intent-filter>
@@ -49,4 +61,5 @@
             </intent-filter>
         </activity>
     </application>
+
 </manifest>

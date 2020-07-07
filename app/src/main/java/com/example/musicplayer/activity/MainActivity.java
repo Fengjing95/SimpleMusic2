@@ -1,5 +1,8 @@
 package com.example.musicplayer.activity;
 
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.DialogInterface;
@@ -29,9 +32,11 @@ import android.widget.AdapterView;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
+import android.widget.RemoteViews;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.NotificationCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 
 import com.bumptech.glide.Glide;
@@ -75,6 +80,40 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // 通知栏状态
+        NotificationManager manager = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
+        Intent intent = new Intent(MainActivity.this, MainActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(MainActivity.this, 0, intent, 0);
+        RemoteViews remoteViews = new RemoteViews(getPackageName(), R.layout.notification);
+
+        Intent intentPause = new Intent("play_play");//发送播放音乐的通知(z暂停/播放，动态调整)
+        PendingIntent pIntentPause = PendingIntent.getBroadcast(this, 0,
+                intentPause, 0);
+        remoteViews.setOnClickPendingIntent(R.id.playandpause, pIntentPause);
+        Intent intentNext = new Intent("play_next");//发送播放下一曲的通知
+        PendingIntent pIntentNext = PendingIntent.getBroadcast(this, 0,
+                intentNext, 0);
+        remoteViews.setOnClickPendingIntent(R.id.next, pIntentNext);
+
+        Intent intentLast = new Intent("play_pre");//发送播放上一曲的通知
+        PendingIntent pIntentLast = PendingIntent.getBroadcast(this, 0,
+                intentLast, 0);
+        remoteViews.setOnClickPendingIntent(R.id.pre, pIntentLast);
+
+        Intent intentCancel = new Intent("close");//发送关闭通知栏的通知
+        PendingIntent pIntentCancel = PendingIntent.getBroadcast(this, 0,
+                intentCancel, 0);
+        remoteViews.setOnClickPendingIntent(R.id.close, pIntentCancel);
+
+        Notification notification = new Notification.Builder(MainActivity.this)
+                .setSmallIcon(R.drawable.app_img)
+                .setContentIntent(pendingIntent)
+                .setOngoing(true)
+                .setContent(remoteViews)
+                .build();
+
+        manager.notify(1, notification);
 
         // 初始化活动
         initActivity();
