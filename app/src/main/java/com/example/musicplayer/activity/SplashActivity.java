@@ -8,6 +8,7 @@ import android.view.Window;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.musicplayer.ActivityController;
 import com.example.musicplayer.R;
 import com.example.musicplayer.useLitepal.LocalMusic;
 
@@ -21,6 +22,7 @@ public class SplashActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        ActivityController.addActivity(this);
         getWindow().requestFeature(Window.FEATURE_NO_TITLE);//去掉标题栏注意这句一定要写在setContentView()方法的前面，不然会报错的
         setContentView(R.layout.activity_splash);
         Connector.getDatabase();//创建数据库

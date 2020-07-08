@@ -31,6 +31,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
 import com.bumptech.glide.Glide;
+import com.example.musicplayer.ActivityController;
 import com.example.musicplayer.LoadingDialog;
 import com.example.musicplayer.Music;
 import com.example.musicplayer.MusicAdapter;
@@ -67,6 +68,7 @@ public class LocalMusicActivity extends AppCompatActivity implements View.OnClic
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_localmusic);
+        ActivityController.addActivity(this);
 
         //初始化
         initActivity();

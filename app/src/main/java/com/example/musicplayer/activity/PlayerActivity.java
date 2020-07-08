@@ -20,6 +20,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
 import com.bumptech.glide.Glide;
+import com.example.musicplayer.ActivityController;
 import com.example.musicplayer.Music;
 import com.example.musicplayer.PlayingMusicAdapter;
 import com.example.musicplayer.R;
@@ -49,6 +50,8 @@ public class PlayerActivity extends AppCompatActivity implements View.OnClickLis
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_player);
+
+        ActivityController.addActivity(this);
 
         //初始化
         initActivity();
