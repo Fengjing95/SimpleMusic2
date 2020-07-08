@@ -27,6 +27,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
 import com.bumptech.glide.Glide;
+import com.example.musicplayer.ActivityController;
 import com.example.musicplayer.Music;
 import com.example.musicplayer.MusicAdapter;
 import com.example.musicplayer.PlayingMusicAdapter;
@@ -69,6 +70,8 @@ public class OnlineMusicActivity extends AppCompatActivity implements View.OnCli
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_onlinemusic);
+
+        ActivityController.addActivity(this);
 
         //初始化
         initActivity();

@@ -20,6 +20,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
 import com.bumptech.glide.Glide;
+import com.example.musicplayer.ActivityController;
+import com.example.musicplayer.AppConstant;
 import com.example.musicplayer.Music;
 import com.example.musicplayer.PlayingMusicAdapter;
 import com.example.musicplayer.R;
@@ -50,6 +52,8 @@ public class PlayerActivity extends AppCompatActivity implements View.OnClickLis
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_player);
 
+        ActivityController.addActivity(this);
+
         //初始化
         initActivity();
     }
@@ -68,18 +72,18 @@ public class PlayerActivity extends AppCompatActivity implements View.OnClickLis
                 // 改变播放模式
                 int mode = serviceBinder.getPlayMode();
                 switch (mode){
-                    case Utils.TYPE_ORDER:
-                        serviceBinder.setPlayMode(Utils.TYPE_SINGLE);
+                    case AppConstant.TYPE_ORDER:
+                        serviceBinder.setPlayMode(AppConstant.TYPE_SINGLE);
                         Toast.makeText(PlayerActivity.this, "单曲循环", Toast.LENGTH_SHORT).show();
                         btnPlayMode.setImageResource(R.drawable.ic_singlerecycler);
                         break;
-                    case Utils.TYPE_SINGLE:
-                        serviceBinder.setPlayMode(Utils.TYPE_RANDOM);
+                    case AppConstant.TYPE_SINGLE:
+                        serviceBinder.setPlayMode(AppConstant.TYPE_RANDOM);
                         Toast.makeText(PlayerActivity.this, "随机播放", Toast.LENGTH_SHORT).show();
                         btnPlayMode.setImageResource(R.drawable.ic_random);
                         break;
-                    case Utils.TYPE_RANDOM:
-                        serviceBinder.setPlayMode(Utils.TYPE_ORDER);
+                    case AppConstant.TYPE_RANDOM:
+                        serviceBinder.setPlayMode(AppConstant.TYPE_ORDER);
                         Toast.makeText(PlayerActivity.this, "列表循环", Toast.LENGTH_SHORT).show();
                         btnPlayMode.setImageResource(R.drawable.ic_playrecycler);
                         break;
@@ -261,13 +265,13 @@ public class PlayerActivity extends AppCompatActivity implements View.OnClickLis
             // 获取当前播放模式
             int mode = (serviceBinder.getPlayMode());
             switch (mode){
-                case Utils.TYPE_ORDER:
+                case AppConstant.TYPE_ORDER:
                     btnPlayMode.setImageResource(R.drawable.ic_playrecycler);
                     break;
-                case Utils.TYPE_SINGLE:
+                case AppConstant.TYPE_SINGLE:
                     btnPlayMode.setImageResource(R.drawable.ic_singlerecycler);
                     break;
-                case Utils.TYPE_RANDOM:
+                case AppConstant.TYPE_RANDOM:
                     btnPlayMode.setImageResource(R.drawable.ic_random);
                     break;
                 default:
