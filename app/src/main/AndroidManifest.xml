@@ -31,10 +31,9 @@
         tools:ignore="GoogleAppIndexingWarning">
 
         <receiver
-            android:name=".PlayerReceiver"
+            android:name=".service.MusicService$PlayerReceiver"
             android:enabled="true"
-            android:exported="true"
-            >
+            android:exported="true">
             <intent-filter>
                 <action android:name="play_pre" />
                 <action android:name="play_next" />
