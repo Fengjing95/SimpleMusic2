@@ -17,6 +17,9 @@ import android.os.Message;
 import android.util.Log;
 
 import com.example.musicplayer.ActivityController;
+import androidx.annotation.RequiresApi;
+
+import com.example.musicplayer.ActivityController;
 import com.example.musicplayer.AppConstant;
 import com.example.musicplayer.MusicDTO;
 import com.example.musicplayer.enums.MusicType;
@@ -32,7 +35,7 @@ public class MusicService extends Service {
 
     private MediaPlayer player;
     private List<MusicDTO> playingMusicList;
-    private List<OnStateChangeListener> listenerList;
+    private List<OnStateChangeListener> listenerList;//为什么是个列表呢，因为有多个界面（activity），每个activity中都有音乐的播放状态，当音乐是暂停或者播放的时候要对全部界面进行修改
     private MusicServiceBinder binder;
     private AudioManager audioManager;
     private MusicDTO currentMusic; // 当前就绪的音乐
@@ -169,7 +172,7 @@ public class MusicService extends Service {
             listenerList.remove(l);
         }
     }
-
+    //添加音乐到播放列表，并保存到数据库中
     private void addPlayListInner(MusicDTO music) {
         if (!playingMusicList.contains(music)) {
             playingMusicList.add(0, music);
@@ -181,7 +184,7 @@ public class MusicService extends Service {
         isNeedReload = true;
         playInner();
     }
-
+    //添加音乐列表到播放列表，并保存到数据库中
     private void addPlayListInner(List<MusicDTO> musicList) {
         playingMusicList.clear();
         LitePal.deleteAll(MusicDTO.class);
@@ -195,13 +198,14 @@ public class MusicService extends Service {
         currentMusic = playingMusicList.get(0);
         playInner();
     }
-
+    //移除播放列表中的某个音乐，并在数据库中删除
     private void removeMusicInner(int i) {
         LitePal.deleteAll(MusicDTO.class, "title=?", playingMusicList.get(i).getTitle());
         playingMusicList.remove(i);
     }
 
 
+    //播放音乐
     private void playInner() {
 
         //获取音频焦点
@@ -222,8 +226,8 @@ public class MusicService extends Service {
 
 
     }
-
-    private void pauseInner() {
+    //暂停音乐
+    private void pauseInner(){
         player.pause();
 
         for (OnStateChangeListener l : listenerList) {
@@ -232,8 +236,8 @@ public class MusicService extends Service {
         // 暂停后不需要重新加载
         isNeedReload = false;
     }
-
-    private void playPreInner() {
+    //播放上一首
+    private void playPreInner(){
         //获取当前播放（或者被加载）音乐的上一首音乐
         //如果前面有要播放的音乐，把那首音乐设置成要播放的音乐
         int currentIndex = playingMusicList.indexOf(currentMusic);
@@ -243,10 +247,10 @@ public class MusicService extends Service {
             playInner();
         }
     }
-
+    //播放下一首
     private void playNextInner() {
 
-        if (playMode == AppConstant.TYPE_RANDOM) {
+        if (playMode == AppConstant.TYPE_RANDOM){
             //随机播放
             int i = (int) (0 + Math.random() * (playingMusicList.size() + 1));
             currentMusic = playingMusicList.get(i);
@@ -262,29 +266,29 @@ public class MusicService extends Service {
         isNeedReload = true;
         playInner();
     }
-
+    //将音乐拖动到指定时间
     private void seekToInner(int pos) {
         //将音乐拖动到指定的时间
         player.seekTo(pos);
     }
-
+    //获取当前播放的音乐
     private MusicDTO getCurrentMusicInner() {
         return currentMusic;
     }
-
+    //当前播放器是否在播放
     private boolean isPlayingInner() {
         return player.isPlaying();
     }
-
+    //获取播放列表
     public List<MusicDTO> getPlayingListInner() {
         return playingMusicList;
     }
-
-    private int getPlayModeInner() {
+    //获取播放模式
+    private int getPlayModeInner(){
         return playMode;
     }
-
-    private void setPlayModeInner(int mode) {
+    //设置播放模式
+    private void setPlayModeInner(int mode){
         playMode = mode;
     }
 

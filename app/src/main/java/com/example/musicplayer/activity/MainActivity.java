@@ -26,6 +26,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -68,6 +69,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private TextView musicCountView;
 
     private static List<MusicDTO> musicList;
+    private TextView navPhone;
     private MusicAdapter musicAdapter;
     private SharedPreferences spf;
     private MusicService.MusicServiceBinder serviceBinder;
@@ -250,6 +252,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         Intent intent2 = new Intent(MainActivity.this, OnlineMusicActivity.class);
                         startActivity(intent2);
                         break;
+                    case R.id.login:
+                        // 进入登录
+                        Intent intent3 = new Intent(MainActivity.this, LoginActivity.class);
+                        startActivityForResult(intent3,555);
+                        break;
+//                    case R.id.register:
+//                        // 进入注册
+//                        Intent intent4 = new Intent(MainActivity.this, RegisterActivity.class);
+//                        startActivity(intent4);
+//                        break;
                     case R.id.exit:
                         // 退出
                         unbindService(serviceConnection);
@@ -497,6 +509,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onResume();
         musicCountView.setText("累计听歌"+  Utils.MUSIC_CACHE.size() +"首");
         musicAdapter.notifyDataSetChanged(); //刷新列表
+    }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 555) {
+            assert data != null;
+            String phoneNum = data.getStringExtra("username");
+            if (phoneNum != null) {
+                String str = "用户" + phoneNum;
+                navPhone = this.findViewById(R.id.nav_phone);
+                navPhone.setText(str);
+            }
+        }
     }
 
     @Override

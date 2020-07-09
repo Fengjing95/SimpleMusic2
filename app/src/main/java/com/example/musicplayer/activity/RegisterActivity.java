@@ -1,6 +1,5 @@
 package com.example.musicplayer.activity;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
 import android.view.View;
@@ -12,7 +11,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
 import com.example.musicplayer.R;
-import com.example.musicplayer.useLitepal.UserLitePal;
+import com.example.musicplayer.UserDTO;
 
 
 import java.util.regex.Pattern;
@@ -64,7 +63,7 @@ public class RegisterActivity extends AppCompatActivity implements View.OnClickL
                     return;
                 } else {
                     //注册
-                    UserLitePal user = new UserLitePal(phonenum, password);
+                    UserDTO user = new UserDTO(phonenum, password);
                     user.save();
                     //成功
                     Toast.makeText(this, "注册成功！", Toast.LENGTH_SHORT).show();
