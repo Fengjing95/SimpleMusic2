@@ -10,6 +10,9 @@ import android.widget.ImageView;
 
 import androidx.appcompat.widget.AppCompatImageView;
 
+/**
+ * 唱盘动画制作
+ */
 public class RotateAnimator extends AppCompatImageView {
     ImageView imageView;
     ImageView Needle;
