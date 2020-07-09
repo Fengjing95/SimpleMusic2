@@ -5,7 +5,6 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.ContentResolver;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
@@ -25,7 +24,6 @@ import android.widget.RemoteViews;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -34,9 +32,10 @@ import androidx.core.app.ActivityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 
 import com.bumptech.glide.Glide;
+import com.example.musicplayer.ActivityController;
+import com.example.musicplayer.AppConstant;
 import com.example.musicplayer.Music;
 import com.example.musicplayer.MusicAdapter;
-import com.example.musicplayer.PlayerReceiver;
 import com.example.musicplayer.PlayingMusicAdapter;
 import com.example.musicplayer.R;
 import com.example.musicplayer.Utils;
@@ -52,15 +51,7 @@ import java.util.List;
 
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 
-//import android.support.annotation.NonNull;
-//import android.support.design.widget.NavigationView;
-//import androidx.core.widget.DrawerLayout;
-//import android.support.v7.app.ActionBarDrawerToggle;
-//import android.support.v7.app.AlertDialog;
-//import android.support.v7.app.AppCompatActivity;
-//import android.support.v7.widget.Toolbar;
-
-public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener{
     private static final String TAG = "MainActivity";
     private Toolbar toolbar;
     private ListView musicListView;
@@ -71,8 +62,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private DrawerLayout drawerLayout;
     private NavigationView navigationView;
     private TextView musicCountView;
-    private TextView navPhone;
-    private MenuItem login;
+
     private static List<Music> musicList;
     private MusicAdapter musicAdapter;
     private SharedPreferences spf;
@@ -83,39 +73,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        ActivityController.addActivity(this);
+
         // 通知栏状态
-        NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        Intent intent = new Intent(MainActivity.this, MainActivity.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity(MainActivity.this, 0, intent, 0);
-        RemoteViews remoteViews = new RemoteViews(getPackageName(), R.layout.notification);
-
-        Intent intentPause = new Intent(PlayerReceiver.PLAY_PLAY);//发送播放音乐的通知(z暂停/播放，动态调整)
-        PendingIntent pIntentPause = PendingIntent.getBroadcast(this, 0,
-                intentPause, 0);
-        remoteViews.setOnClickPendingIntent(R.id.playandpause, pIntentPause);
-        Intent intentNext = new Intent(PlayerReceiver.PLAY_NEXT);//发送播放下一曲的通知
-        PendingIntent pIntentNext = PendingIntent.getBroadcast(this, 0,
-                intentNext, 0);
-        remoteViews.setOnClickPendingIntent(R.id.next, pIntentNext);
-
-        Intent intentLast = new Intent(PlayerReceiver.PLAY_PRE);//发送播放上一曲的通知
-        PendingIntent pIntentLast = PendingIntent.getBroadcast(this, 0,
-                intentLast, 0);
-        remoteViews.setOnClickPendingIntent(R.id.pre, pIntentLast);
-
-        Intent intentCancel = new Intent(PlayerReceiver.PLAY_PAUSE);//发送关闭通知栏的通知
-        PendingIntent pIntentCancel = PendingIntent.getBroadcast(this, 0,
-                intentCancel, 0);
-        remoteViews.setOnClickPendingIntent(R.id.close, pIntentCancel);
-        Context context;
-        Notification notification = new Notification.Builder(MainActivity.this)
-                .setSmallIcon(R.drawable.app_img)
-                .setContentIntent(pendingIntent)
-                .setOngoing(true)
-                .setContent(remoteViews)
-                .build();
-
-        manager.notify(1, notification);
+        stateBar();
 
         // 初始化活动
         initActivity();
@@ -142,14 +103,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 final Music music = musicList.get(i);
 
                 //弹出操作对话框
-                final String[] items = new String[]{"添加到播放列表", "删除"};
+                final String[] items = new String[] {"添加到播放列表", "删除"};
                 AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-                builder.setTitle(music.title + "-" + music.artist);
+                builder.setTitle(music.title+"-"+music.artist);
 
                 builder.setItems(items, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        switch (which) {
+                        switch (which){
                             case 0:
                                 serviceBinder.addPlayList(music);
                                 break;
@@ -168,8 +129,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
 
+
+
+
     // 初始化活动
-    private void initActivity() {
+    private void initActivity(){
         Log.d(TAG, "initActivity: 1");
         // 申请读写权限
         ActivityCompat.requestPermissions(MainActivity.this,
@@ -192,8 +156,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         playerToolView.setOnClickListener(this);
         btnPlayOrPause.setOnClickListener(this);
         btn_playingList.setOnClickListener(this);
-        //设置导航栏手机号
-
+        
         // 使用ToolBar
         toolbar = findViewById(R.id.toolbar);
         toolbar.setTitle("");
@@ -211,14 +174,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         bindService(intent, serviceConnection, BIND_AUTO_CREATE);
     }
 
-    private void initMusicList() {
+    private void initMusicList(){
         Log.d(TAG, "initMusicList: 2");
         //从数据库获取我的音乐
         musicList = new ArrayList<>();
 
         List<MyMusic> list = LitePal.findAll(MyMusic.class);
-        Log.d(TAG, "initMusicList: 2--------" + list.size());
-        for (MyMusic s : list) {
+        Log.d(TAG, "initMusicList: 2--------"+list.size());
+        for (MyMusic s:list){
             Music m = new Music(s.songUrl, s.title, s.artist, s.imgUrl, s.isOnlineMusic);
 
             musicList.add(m);
@@ -230,15 +193,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     // 读取配置
-    private void initsettings() {
+    private void initsettings(){
         spf = getSharedPreferences("settings", MODE_PRIVATE);
         //累计听歌数量
         Utils.count = spf.getInt("listen_count", 0);
-        musicCountView.setText("累计听歌" + String.valueOf(Utils.count) + "首");
+        musicCountView.setText("累计听歌"+ String.valueOf(Utils.count) +"首");
     }
 
     // 保存配置
-    private void saveSettings() {
+    private void saveSettings(){
         SharedPreferences.Editor editor = spf.edit();
 
         //累计听歌数量
@@ -251,10 +214,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     // 设置侧边栏
-    private void setNavigationView() {
+    private void setNavigationView(){
 
         // 使用toggle控制侧边栏弹出:
-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawerLayout, toolbar, R.string.app_name, R.string.app_name);
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawerLayout,toolbar, R.string.app_name, R.string.app_name);
         toggle.syncState();
         drawerLayout.addDrawerListener(toggle);
 
@@ -263,7 +226,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             @Override
             public boolean onNavigationItemSelected(@NonNull MenuItem menuItem) {
 
-                switch (menuItem.getItemId()) {
+                switch (menuItem.getItemId()){
                     case R.id.local:
                         // 进入本地音乐
                         Intent intent1 = new Intent(MainActivity.this, LocalMusicActivity.class);
@@ -274,34 +237,25 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         Intent intent2 = new Intent(MainActivity.this, OnlineMusicActivity.class);
                         startActivity(intent2);
                         break;
-                    case R.id.login:
-                        // 进入登录
-                        Intent intent3 = new Intent(MainActivity.this, LoginActivity.class);
-                        startActivityForResult(intent3,555);
-                        break;
-//                    case R.id.register:
-//                        // 进入注册
-//                        Intent intent4 = new Intent(MainActivity.this, RegisterActivity.class);
-//                        startActivity(intent4);
-//                        break;
                     case R.id.exit:
                         // 退出
                         unbindService(serviceConnection);
                         Intent intent = new Intent(MainActivity.this, MusicService.class);
                         stopService(intent);
-                        finish();
+                        NotificationManager manager = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
+                        manager.cancelAll();
+                        ActivityController.clearAll();
                         break;
-                    default:
+
                 }
                 return true;
             }
         });
     }
-
     // 监听组件
     @Override
     public void onClick(View v) {
-        switch (v.getId()) {
+        switch (v.getId()){
             case R.id.player:
                 // 进入播放器
                 Intent intent = new Intent(MainActivity.this, PlayerActivity.class);
@@ -320,7 +274,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     // 显示当前正在播放的音乐
-    private void showPlayingList() {
+    private void showPlayingList(){
 
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
 
@@ -329,7 +283,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         //获取播放列表
         final List<Music> playingList = serviceBinder.getPlayingList();
 
-        if (playingList.size() > 0) {
+        if(playingList.size() > 0) {
 
             //播放列表有曲目，显示所有音乐
             final PlayingMusicAdapter playingAdapter = new PlayingMusicAdapter(this, R.layout.playinglist_item, playingList);
@@ -348,7 +302,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     playingAdapter.notifyDataSetChanged();
                 }
             });
-        } else {
+        }
+        else {
             //播放列表没有曲目，显示没有音乐
             builder.setMessage("没有正在播放的音乐");
         }
@@ -366,22 +321,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         public void onServiceConnected(ComponentName name, IBinder service) {
             //绑定成功后，取得MusicSercice提供的接口
             serviceBinder = (MusicService.MusicServiceBinder) service;
+
             //注册监听器
             serviceBinder.registerOnStateChangeListener(listenr);
 
             Music item = serviceBinder.getCurrentMusic();
 
-            if (item != null) {
+            if(item != null){
                 //当前有可播放音乐
                 playingTitleView.setText(item.title);
                 playingArtistView.setText(item.artist);
-                if (item.isOnlineMusic) {
+                if (item.isOnlineMusic){
                     Glide.with(getApplicationContext())
                             .load(item.imgUrl)
                             .placeholder(R.drawable.defult_music_img)
                             .error(R.drawable.defult_music_img)
                             .into(playingImgView);
-                } else {
+                }
+                else {
                     ContentResolver resolver = getContentResolver();
                     Bitmap img = Utils.getLocalMusicBmp(resolver, item.imgUrl);
                     Glide.with(getApplicationContext())
@@ -392,10 +349,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
             }
 
-            int mode = spf.getInt("play_mode", Utils.TYPE_ORDER);
+            int mode = spf.getInt("play_mode", AppConstant.TYPE_ORDER);
             serviceBinder.setPlayMode(mode);
         }
-
         @Override
         public void onServiceDisconnected(ComponentName name) {
             //断开连接之后, 注销监听器
@@ -407,8 +363,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private MusicService.OnStateChangeListenr listenr = new MusicService.OnStateChangeListenr() {
 
         @Override
-        public void onPlayProgressChange(long played, long duration) {
-        }
+        public void onPlayProgressChange(long played, long duration) {}
 
         @Override
         public void onPlay(Music item) {
@@ -416,13 +371,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             btnPlayOrPause.setImageResource(R.drawable.zanting);
             playingTitleView.setText(item.title);
             playingArtistView.setText(item.artist);
-            if (item.isOnlineMusic) {
+            if (item.isOnlineMusic){
                 Glide.with(getApplicationContext())
                         .load(item.imgUrl)
                         .placeholder(R.drawable.defult_music_img)
                         .error(R.drawable.defult_music_img)
                         .into(playingImgView);
-            } else {
+            }
+            else {
                 ContentResolver resolver = getContentResolver();
                 Bitmap img = Utils.getLocalMusicBmp(resolver, item.imgUrl);
                 Glide.with(getApplicationContext())
@@ -441,7 +397,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     };
 
     // 对外接口, 插入一首歌曲
-    public static void addMymusic(Music item) {
+    public static  void addMymusic(Music item){
         if (musicList.contains(item)) {
             return;
         }
@@ -458,6 +414,45 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //            addMymusic(item);
 //        }
 //    }
+
+
+
+
+    public void stateBar() {
+        NotificationManager manager = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
+        Intent intent = new Intent(MainActivity.this, MainActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(MainActivity.this, 0, intent, 0);
+        RemoteViews remoteViews = new RemoteViews(getPackageName(), R.layout.notification);
+
+        Intent intentPause = new Intent("play_play");//发送播放音乐的通知(z暂停/播放，动态调整)
+        PendingIntent pIntentPause = PendingIntent.getBroadcast(this, 0,
+                intentPause, 0);
+        remoteViews.setOnClickPendingIntent(R.id.playandpause, pIntentPause);
+
+        Intent intentNext = new Intent("play_next");//发送播放下一曲的通知
+        PendingIntent pIntentNext = PendingIntent.getBroadcast(this, 0,
+                intentNext, 0);
+        remoteViews.setOnClickPendingIntent(R.id.next, pIntentNext);
+
+        Intent intentLast = new Intent("play_pre");//发送播放上一曲的通知
+        PendingIntent pIntentLast = PendingIntent.getBroadcast(this, 0,
+                intentLast, 0);
+        remoteViews.setOnClickPendingIntent(R.id.pre, pIntentLast);
+
+        Intent intentCancel = new Intent("close");//发送关闭通知栏的通知
+        PendingIntent pIntentCancel = PendingIntent.getBroadcast(this, 0,
+                intentCancel, 0);
+        remoteViews.setOnClickPendingIntent(R.id.close, pIntentCancel);
+
+        Notification notification = new Notification.Builder(MainActivity.this)
+                .setSmallIcon(R.drawable.app_img)
+                .setContentIntent(pendingIntent)
+                .setOngoing(true)
+                .setContent(remoteViews)
+                .build();
+
+        manager.notify(1, notification);
+    }
 
     // 显示菜单
     @Override
@@ -483,26 +478,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
         return true;
     }
-
     @Override
     protected void onResume() {
         super.onResume();
-        musicCountView.setText("累计听歌" + Integer.toString(Utils.count) + "首");
+        musicCountView.setText("累计听歌"+ Integer.toString(Utils.count)+"首");
         musicAdapter.notifyDataSetChanged(); //刷新列表
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == 555) {
-            assert data != null;
-            String phoneNum = data.getStringExtra("username");
-            if (phoneNum != null) {
-                String str = "用户" + phoneNum;
-                navPhone = this.findViewById(R.id.nav_phone);
-                navPhone.setText(str);
-            }
-        }
     }
 
     @Override

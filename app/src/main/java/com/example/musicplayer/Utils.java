@@ -14,11 +14,6 @@ public class Utils {
     //累计听歌数量
     public static int count;
 
-    //播放模式
-    public static final int TYPE_ORDER = 4212;  //顺序播放
-    public static final int TYPE_SINGLE = 4313; //单曲循环
-    public static final int TYPE_RANDOM = 4414; //随机播放
-
     // 获取本地音乐封面图片
     public static Bitmap getLocalMusicBmp(ContentResolver res, String musicPic) {
         InputStream in;
