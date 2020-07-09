@@ -24,6 +24,7 @@ import android.widget.RemoteViews;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -62,7 +63,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private DrawerLayout drawerLayout;
     private NavigationView navigationView;
     private TextView musicCountView;
-
+    private TextView navPhone;
     private static List<Music> musicList;
     private MusicAdapter musicAdapter;
     private SharedPreferences spf;
@@ -214,10 +215,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     // 设置侧边栏
-    private void setNavigationView(){
+    private void setNavigationView() {
 
         // 使用toggle控制侧边栏弹出:
-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawerLayout,toolbar, R.string.app_name, R.string.app_name);
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawerLayout, toolbar, R.string.app_name, R.string.app_name);
         toggle.syncState();
         drawerLayout.addDrawerListener(toggle);
 
@@ -226,7 +227,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             @Override
             public boolean onNavigationItemSelected(@NonNull MenuItem menuItem) {
 
-                switch (menuItem.getItemId()){
+                switch (menuItem.getItemId()) {
                     case R.id.local:
                         // 进入本地音乐
                         Intent intent1 = new Intent(MainActivity.this, LocalMusicActivity.class);
@@ -237,21 +238,30 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         Intent intent2 = new Intent(MainActivity.this, OnlineMusicActivity.class);
                         startActivity(intent2);
                         break;
+                    case R.id.login:
+                        // 进入登录
+                        Intent intent3 = new Intent(MainActivity.this, LoginActivity.class);
+                        startActivityForResult(intent3,555);
+                        break;
+//                    case R.id.register:
+//                        // 进入注册
+//                        Intent intent4 = new Intent(MainActivity.this, RegisterActivity.class);
+//                        startActivity(intent4);
+//                        break;
                     case R.id.exit:
                         // 退出
                         unbindService(serviceConnection);
                         Intent intent = new Intent(MainActivity.this, MusicService.class);
                         stopService(intent);
-                        NotificationManager manager = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
-                        manager.cancelAll();
-                        ActivityController.clearAll();
+                        finish();
                         break;
-
+                    default:
                 }
                 return true;
             }
         });
     }
+
     // 监听组件
     @Override
     public void onClick(View v) {
@@ -483,6 +493,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onResume();
         musicCountView.setText("累计听歌"+ Integer.toString(Utils.count)+"首");
         musicAdapter.notifyDataSetChanged(); //刷新列表
+    }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 555) {
+            assert data != null;
+            String phoneNum = data.getStringExtra("username");
+            if (phoneNum != null) {
+                String str = "用户" + phoneNum;
+                navPhone = this.findViewById(R.id.nav_phone);
+                navPhone.setText(str);
+            }
+        }
     }
 
     @Override

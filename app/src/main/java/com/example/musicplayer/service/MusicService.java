@@ -1,22 +1,22 @@
 package com.example.musicplayer.service;
 
 import android.annotation.SuppressLint;
-import android.app.NotificationManager;
 import android.app.Service;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+
+import android.media.AudioFocusRequest;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Binder;
+import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
-import android.util.Log;
 
-import com.example.musicplayer.ActivityController;
+import androidx.annotation.RequiresApi;
+
 import com.example.musicplayer.AppConstant;
 import com.example.musicplayer.Music;
 import com.example.musicplayer.Utils;
@@ -27,20 +27,21 @@ import org.litepal.LitePal;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
 //@RequiresApi(api = Build.VERSION_CODES.O)
 public class MusicService extends Service {
 
     private MediaPlayer player;
     private List<Music> playingMusicList;
-    private List<OnStateChangeListenr> listenrList;
+    private List<OnStateChangeListenr> listenrList;//为什么是个列表呢，因为有多个界面（activity），每个activity中都有音乐的播放状态，当音乐是暂停或者播放的时候要对全部界面进行修改
     private MusicServiceBinder binder;
     private AudioManager audioManager;
     private Music currentMusic; // 当前就绪的音乐
-    private boolean autoPlayAfterFocus;    // 获取焦点之后是否自动播放
+    private  boolean autoPlayAfterFocus;    // 获取焦点之后是否自动播放
     private boolean isNeedReload;     // 播放时是否需要重新加载
     private int playMode;  // 播放模式
     private SharedPreferences spf;
+
+
 
     @Override
     public void onCreate() {
@@ -73,13 +74,14 @@ public class MusicService extends Service {
         @Override
         public void onCompletion(MediaPlayer mp) {
 
-            Utils.count++; //累计听歌数量+1
+            Utils.count ++; //累计听歌数量+1
 
             if (playMode == AppConstant.TYPE_SINGLE) {
                 //单曲循环
                 isNeedReload = true;
                 playInner();
-            } else {
+            }
+            else {
                 playNextInner();
             }
         }
@@ -88,9 +90,7 @@ public class MusicService extends Service {
     //对外监听器接口
     public interface OnStateChangeListenr {
         void onPlayProgressChange(long played, long duration);  //播放进度变化
-
         void onPlay(Music item);    //播放状态变化
-
         void onPause();   //播放状态变化
     }
 
@@ -113,10 +113,11 @@ public class MusicService extends Service {
         }
 
 
-        public void playOrPause() {
-            if (player.isPlaying()) {
+        public void playOrPause(){
+            if (player.isPlaying()){
                 pauseInner();
-            } else {
+            }
+            else {
                 playInner();
             }
         }
@@ -132,12 +133,12 @@ public class MusicService extends Service {
         }
 
         // 获取当前播放模式
-        public int getPlayMode() {
+        public int getPlayMode(){
             return getPlayModeInner();
         }
 
         // 设置播放模式
-        public void setPlayMode(int mode) {
+        public void setPlayMode(int mode){
             setPlayModeInner(mode);
         }
 
@@ -171,8 +172,9 @@ public class MusicService extends Service {
             listenrList.remove(l);
         }
     }
-
-    private void addPlayListInner(Music music) {
+    /***********************************************************************************************************************************/
+    //添加音乐到播放列表，并保存到数据库中
+    private void addPlayListInner(Music music){
         if (!playingMusicList.contains(music)) {
             playingMusicList.add(0, music);
             PlayingMusic playingMusic = new PlayingMusic(music.songUrl, music.title, music.artist, music.imgUrl, music.isOnlineMusic);
@@ -182,25 +184,26 @@ public class MusicService extends Service {
         isNeedReload = true;
         playInner();
     }
-
-    private void addPlayListInner(List<Music> musicList) {
+    //添加音乐列表到播放列表，并保存到数据库中
+    private void addPlayListInner(List<Music> musicList){
         playingMusicList.clear();
         LitePal.deleteAll(PlayingMusic.class);
         playingMusicList.addAll(musicList);
-        for (Music i : musicList) {
+        for (Music i: musicList){
             PlayingMusic playingMusic = new PlayingMusic(i.songUrl, i.title, i.artist, i.imgUrl, i.isOnlineMusic);
             playingMusic.save();
         }
         currentMusic = playingMusicList.get(0);
         playInner();
     }
-
-    private void removeMusicInner(int i) {
+    //移除播放列表中的某个音乐，并在数据库中删除
+    private void removeMusicInner(int i){
         LitePal.deleteAll(PlayingMusic.class, "title=?", playingMusicList.get(i).title);
         playingMusicList.remove(i);
     }
 
 
+    //播放音乐
     private void playInner() {
 
         //获取音频焦点
@@ -211,6 +214,7 @@ public class MusicService extends Service {
 ////                .setOnAudioFocusChangeListener(audioFocusListener, handler)
 //                .build();
 //        audioManager.requestAudioFocus(audioFocusRequest);
+
         //如果之前没有选定要播放的音乐，就选列表中的第一首音乐开始播放
         if (currentMusic == null && playingMusicList.size() > 0) {
             currentMusic = playingMusicList.get(0);
@@ -221,8 +225,8 @@ public class MusicService extends Service {
 
 
     }
-
-    private void pauseInner() {
+    //暂停音乐
+    private void pauseInner(){
         player.pause();
 
         for (OnStateChangeListenr l : listenrList) {
@@ -231,8 +235,8 @@ public class MusicService extends Service {
         // 暂停后不需要重新加载
         isNeedReload = false;
     }
-
-    private void playPreInner() {
+    //播放上一首
+    private void playPreInner(){
         //获取当前播放（或者被加载）音乐的上一首音乐
         //如果前面有要播放的音乐，把那首音乐设置成要播放的音乐
         int currentIndex = playingMusicList.indexOf(currentMusic);
@@ -242,14 +246,15 @@ public class MusicService extends Service {
             playInner();
         }
     }
-
+    //播放下一首
     private void playNextInner() {
 
-        if (playMode == AppConstant.TYPE_RANDOM) {
+        if (playMode == AppConstant.TYPE_RANDOM){
             //随机播放
             int i = (int) (0 + Math.random() * (playingMusicList.size() + 1));
             currentMusic = playingMusicList.get(i);
-        } else {
+        }
+        else {
             //列表循环
             int currentIndex = playingMusicList.indexOf(currentMusic);
             if (currentIndex < playingMusicList.size() - 1) {
@@ -261,29 +266,29 @@ public class MusicService extends Service {
         isNeedReload = true;
         playInner();
     }
-
-    private void seekToInner(int pos) {
+    //将音乐拖动到指定时间
+    private void seekToInner(int pos){
         //将音乐拖动到指定的时间
         player.seekTo(pos);
     }
-
-    private Music getCurrentMusicInner() {
+    //获取当前播放的音乐
+    private Music getCurrentMusicInner(){
         return currentMusic;
     }
-
-    private boolean isPlayingInner() {
+    //当前播放器是否在播放
+    private boolean isPlayingInner(){
         return player.isPlaying();
     }
-
-    public List<Music> getPlayingListInner() {
+    //获取播放列表
+    public List<Music> getPlayingListInner(){
         return playingMusicList;
     }
-
-    private int getPlayModeInner() {
+    //获取播放模式
+    private int getPlayModeInner(){
         return playMode;
     }
-
-    private void setPlayModeInner(int mode) {
+    //设置播放模式
+    private void setPlayModeInner(int mode){
         playMode = mode;
     }
 
@@ -318,47 +323,10 @@ public class MusicService extends Service {
         isNeedReload = true;
 
         //移除现有的更新消息，重新启动更新
-        handler.removeMessages(AppConstant.MESSAGE_FLAG);
-        handler.sendEmptyMessage(AppConstant.MESSAGE_FLAG);
+        handler.removeMessages(66);
+        handler.sendEmptyMessage(66);
     }
 
-
-    public static class PlayerReceiver extends BroadcastReceiver {
-
-        public static final String PLAY_PRE = "play_pre";
-        public static final String PLAY_NEXT = "play_next";
-        public static final String PLAY_PAUSE = "play_pause";
-        public static final String PLAY_PLAY = "play_play";
-        public static final String CLOSE = "close";
-
-        public MusicServiceBinder serviceBinder;
-
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if (intent.getAction().equals(PLAY_NEXT)) {//PLAY_NEXT
-                Log.e("PlayerReceiver", "通知栏点击了下一首");
-                serviceBinder.playNext();
-            }
-            if (intent.getAction().equals(PLAY_PRE)) {
-                Log.e("PlayerReceiver", "通知栏点击了上一首");
-                serviceBinder.playPre();
-            }
-            if (intent.getAction().equals(PLAY_PAUSE)) {
-                Log.e("PlayerReceiver", "通知栏点击了暂停");
-            }
-            if (intent.getAction().equals(PLAY_PLAY)) {
-                Log.e("PlayerReceiver", "通知栏点击了开始");
-                serviceBinder.playOrPause();
-            }
-            if (intent.getAction().equals(CLOSE)) {
-                Log.e("PlayerReceiver", "通知栏点击了close");
-                @SuppressLint("WrongConstant") NotificationManager manager =
-                        (NotificationManager) context.getSystemService("notification");
-                manager.cancelAll();
-                ActivityController.clearAll();
-            }
-        }
-    }
 
 
     @SuppressLint("HandlerLeak")
@@ -367,15 +335,15 @@ public class MusicService extends Service {
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
-                case AppConstant.MESSAGE_FLAG:
+                case 66:
                     //通知监听者当前的播放进度
                     long played = player.getCurrentPosition();
                     long duration = player.getDuration();
-                    for (OnStateChangeListenr l : listenrList) {
+                    for (OnStateChangeListenr l : listenrList) {//我感觉这里没啥卵用
                         l.onPlayProgressChange(played, duration);
                     }
                     //间隔一秒发送一次更新播放进度的消息
-                    sendEmptyMessageDelayed(AppConstant.MESSAGE_FLAG, 1000);
+                    sendEmptyMessageDelayed(66, 1000);
                     break;
             }
         }
@@ -388,27 +356,27 @@ public class MusicService extends Service {
     }
 
     //焦点控制
-    private AudioManager.OnAudioFocusChangeListener audioFocusListener = new AudioManager.OnAudioFocusChangeListener() {
+    private AudioManager.OnAudioFocusChangeListener audioFocusListener = new AudioManager.OnAudioFocusChangeListener(){
 
         @Override
         public void onAudioFocusChange(int focusChange) {
-            switch (focusChange) {
+            switch(focusChange){
                 case AudioManager.AUDIOFOCUS_LOSS:
-                    if (player.isPlaying()) {
+                    if(player.isPlaying()){
                         //会长时间失去，所以告知下面的判断，获得焦点后不要自动播放
                         autoPlayAfterFocus = false;
                         pauseInner();//因为会长时间失去，所以直接暂停
                     }
                     break;
                 case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
-                    if (player.isPlaying()) {
+                    if(player.isPlaying()){
                         //短暂失去焦点，先暂停。同时将标志位置成重新获得焦点后就开始播放
                         autoPlayAfterFocus = true;
                         pauseInner();
                     }
                     break;
                 case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
-                    if (player.isPlaying()) {
+                    if(player.isPlaying()){
                         //短暂失去焦点，先暂停。同时将标志位置成重新获得焦点后就开始播放
                         autoPlayAfterFocus = true;
                         pauseInner();
@@ -416,7 +384,7 @@ public class MusicService extends Service {
                     break;
                 case AudioManager.AUDIOFOCUS_GAIN:
                     //重新获得焦点，且符合播放条件，开始播放
-                    if (!player.isPlaying() && autoPlayAfterFocus) {
+                    if(!player.isPlaying()&& autoPlayAfterFocus){
                         autoPlayAfterFocus = false;
                         playInner();
                     }
@@ -436,7 +404,7 @@ public class MusicService extends Service {
 
         playingMusicList.clear();
         listenrList.clear();
-        handler.removeMessages(AppConstant.MESSAGE_FLAG);
+        handler.removeMessages(66);
         audioManager.abandonAudioFocus(audioFocusListener); //注销音频管理服务
 //        AudioFocusRequest audioFocusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
 //                .setOnAudioFocusChangeListener(audioFocusListener)

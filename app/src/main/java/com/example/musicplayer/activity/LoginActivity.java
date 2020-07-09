@@ -101,6 +101,10 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()){
             case android.R.id.home:
+                Intent intent = new Intent();
+                String str = null;
+                intent.putExtra("username", str);
+                setResult(2,intent);
                 finish();
                 return true;
             default:
