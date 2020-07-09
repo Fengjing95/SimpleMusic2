@@ -10,7 +10,6 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.musicplayer.ActivityController;
 import com.example.musicplayer.R;
-import com.example.musicplayer.useLitepal.LocalMusic;
 
 import org.litepal.tablemanager.Connector;
 
