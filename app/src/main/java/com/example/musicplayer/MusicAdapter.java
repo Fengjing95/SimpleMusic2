@@ -12,12 +12,12 @@ import java.util.List;
 
 public class MusicAdapter extends BaseAdapter {
 
-    private List<Music> mData;
+    private List<MusicDTO> mData;
     private LayoutInflater mInflater;
     private int mResource;
     private onMoreButtonListener monMoreButtonListener;
 
-    public MusicAdapter(Context context, int resId, List<Music> data)
+    public MusicAdapter(Context context, int resId, List<MusicDTO> data)
     {
         mData = data;
         mInflater = LayoutInflater.from(context);
@@ -42,7 +42,7 @@ public class MusicAdapter extends BaseAdapter {
     @Override
     public View getView(final int position, View convertView, ViewGroup parent) {
 
-        Music item = mData.get(position);
+        MusicDTO item = mData.get(position);
         View view;
         ViewHolder holder;
 
@@ -58,14 +58,9 @@ public class MusicAdapter extends BaseAdapter {
             view = convertView;
             holder = (ViewHolder) view.getTag();
         }
-        holder.title.setText(item.title);
-        holder.artist.setText(item.artist);
-        holder.more.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                monMoreButtonListener.onClick(position);
-            }
-        });
+        holder.title.setText(item.getTitle());
+        holder.artist.setText(item.getArtist());
+        holder.more.setOnClickListener(v -> monMoreButtonListener.onClick(position));
         return view;
     }
 

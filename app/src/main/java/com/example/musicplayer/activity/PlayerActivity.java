@@ -22,10 +22,11 @@ import androidx.appcompat.widget.Toolbar;
 import com.bumptech.glide.Glide;
 import com.example.musicplayer.ActivityController;
 import com.example.musicplayer.AppConstant;
-import com.example.musicplayer.Music;
+import com.example.musicplayer.MusicDTO;
 import com.example.musicplayer.PlayingMusicAdapter;
 import com.example.musicplayer.R;
 import com.example.musicplayer.Utils;
+import com.example.musicplayer.enums.MusicType;
 import com.example.musicplayer.service.MusicService;
 
 import java.util.List;
@@ -168,7 +169,7 @@ public class PlayerActivity extends AppCompatActivity implements View.OnClickLis
         builder.setTitle("播放列表");
 
         //获取播放列表
-        final List<Music> playingList = serviceBinder.getPlayingList();
+        final List<MusicDTO> playingList = serviceBinder.getPlayingList();
 
         if(playingList.size() > 0) {
             //播放列表有曲目，显示所有音乐
@@ -210,7 +211,7 @@ public class PlayerActivity extends AppCompatActivity implements View.OnClickLis
             serviceBinder.registerOnStateChangeListener(listenr);
 
             //获得当前音乐
-            Music item = serviceBinder.getCurrentMusic();
+            MusicDTO item = serviceBinder.getCurrentMusic();
 
             if(item == null) {
                 //当前音乐为空, seekbar不可拖动
@@ -218,20 +219,25 @@ public class PlayerActivity extends AppCompatActivity implements View.OnClickLis
             }
             else if (serviceBinder.isPlaying()){
                 //如果正在播放音乐, 更新信息
-                musicTitleView.setText(item.title);
-                musicArtistView.setText(item.artist);
+                MusicDTO save2Db = (MusicDTO) item.clone();
+                save2Db.setMusicType(MusicType.PLAYED_MUSIC);
+                Utils.MUSIC_CACHE.put(item, true);
+                save2Db.save();
+
+                musicTitleView.setText(item.getTitle());
+                musicArtistView.setText(item.getArtist());
                 btnPlayOrPause.setImageResource(R.drawable.ic_pause);
                 rotateAnimator.playAnimator();
-                if (item.isOnlineMusic){
+                if (item.isOnlineMusic()){
                     Glide.with(getApplicationContext())
-                            .load(item.imgUrl)
+                            .load(item.getImgUrl())
                             .placeholder(R.drawable.defult_music_img)
                             .error(R.drawable.defult_music_img)
                             .into(musicImgView);
                 }
                 else {
                     ContentResolver resolver = getContentResolver();
-                    Bitmap img = Utils.getLocalMusicBmp(resolver, item.imgUrl);
+                    Bitmap img = Utils.getLocalMusicBmp(resolver, item.getImgUrl());
                     Glide.with(getApplicationContext())
                             .load(img)
                             .placeholder(R.drawable.defult_music_img)
@@ -241,19 +247,19 @@ public class PlayerActivity extends AppCompatActivity implements View.OnClickLis
             }
             else {
                 //当前有可播放音乐但没有播放
-                musicTitleView.setText(item.title);
-                musicArtistView.setText(item.artist);
+                musicTitleView.setText(item.getTitle());
+                musicArtistView.setText(item.getArtist());
                 btnPlayOrPause.setImageResource(R.drawable.ic_play);
-                if (item.isOnlineMusic){
+                if (item.isOnlineMusic()){
                     Glide.with(getApplicationContext())
-                            .load(item.imgUrl)
+                            .load(item.getImgUrl())
                             .placeholder(R.drawable.defult_music_img)
                             .error(R.drawable.defult_music_img)
                             .into(musicImgView);
                 }
                 else {
                     ContentResolver resolver = getContentResolver();
-                    Bitmap img = Utils.getLocalMusicBmp(resolver, item.imgUrl);
+                    Bitmap img = Utils.getLocalMusicBmp(resolver, item.getImgUrl());
                     Glide.with(getApplicationContext())
                             .load(img)
                             .placeholder(R.drawable.defult_music_img)
@@ -297,22 +303,22 @@ public class PlayerActivity extends AppCompatActivity implements View.OnClickLis
         }
 
         @Override
-        public void onPlay(final Music item) {
+        public void onPlay(final MusicDTO item) {
             //变为播放状态时
-            musicTitleView.setText(item.title);
-            musicArtistView.setText(item.artist);
+            musicTitleView.setText(item.getTitle());
+            musicArtistView.setText(item.getArtist());
             btnPlayOrPause.setImageResource(R.drawable.ic_pause);
             rotateAnimator.playAnimator();
-            if (item.isOnlineMusic){
+            if (item.isOnlineMusic()){
                 Glide.with(getApplicationContext())
-                        .load(item.imgUrl)
+                        .load(item.getImgUrl())
                         .placeholder(R.drawable.defult_music_img)
                         .error(R.drawable.defult_music_img)
                         .into(musicImgView);
             }
             else {
                 ContentResolver resolver = getContentResolver();
-                Bitmap img = Utils.getLocalMusicBmp(resolver, item.imgUrl);
+                Bitmap img = Utils.getLocalMusicBmp(resolver, item.getImgUrl());
                 Glide.with(getApplicationContext())
                         .load(img)
                         .placeholder(R.drawable.defult_music_img)
