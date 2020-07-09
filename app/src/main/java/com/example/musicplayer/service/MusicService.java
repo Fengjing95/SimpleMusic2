@@ -19,7 +19,6 @@ import android.util.Log;
 import com.example.musicplayer.ActivityController;
 import com.example.musicplayer.AppConstant;
 import com.example.musicplayer.MusicDTO;
-import com.example.musicplayer.Utils;
 import com.example.musicplayer.enums.MusicType;
 
 import org.litepal.LitePal;
@@ -33,7 +32,7 @@ public class MusicService extends Service {
 
     private MediaPlayer player;
     private List<MusicDTO> playingMusicList;
-    private List<OnStateChangeListenr> listenrList;
+    private List<OnStateChangeListener> listenerList;
     private MusicServiceBinder binder;
     private AudioManager audioManager;
     private MusicDTO currentMusic; // 当前就绪的音乐
@@ -46,7 +45,7 @@ public class MusicService extends Service {
     public void onCreate() {
         super.onCreate();
         initPlayList();     //初始化播放列表
-        listenrList = new ArrayList<>();    //初始化监听器列表
+        listenerList = new ArrayList<>();    //初始化监听器列表
         player = new MediaPlayer();   //初始化播放器
         player.setOnCompletionListener(onCompletionListener);   //设置播放完成的监听器
         binder = new MusicServiceBinder();
@@ -85,7 +84,7 @@ public class MusicService extends Service {
     };
 
     //对外监听器接口
-    public interface OnStateChangeListenr {
+    public interface OnStateChangeListener {
         void onPlayProgressChange(long played, long duration);  //播放进度变化
 
         void onPlay(MusicDTO item);    //播放状态变化
@@ -161,13 +160,13 @@ public class MusicService extends Service {
         }
 
         // 注册监听器
-        public void registerOnStateChangeListener(OnStateChangeListenr l) {
-            listenrList.add(l);
+        public void registerOnStateChangeListener(OnStateChangeListener l) {
+            listenerList.add(l);
         }
 
         // 注销监听器
-        public void unregisterOnStateChangeListener(OnStateChangeListenr l) {
-            listenrList.remove(l);
+        public void unregisterOnStateChangeListener(OnStateChangeListener l) {
+            listenerList.remove(l);
         }
     }
 
@@ -227,7 +226,7 @@ public class MusicService extends Service {
     private void pauseInner() {
         player.pause();
 
-        for (OnStateChangeListenr l : listenrList) {
+        for (OnStateChangeListener l : listenerList) {
             l.onPause();
         }
         // 暂停后不需要重新加载
@@ -314,7 +313,7 @@ public class MusicService extends Service {
             prepareToPlay(item);
         }
         player.start();
-        for (OnStateChangeListenr l : listenrList) {
+        for (OnStateChangeListener l : listenerList) {
             l.onPlay(item);
         }
         isNeedReload = true;
@@ -371,7 +370,7 @@ public class MusicService extends Service {
             if (msg.what == AppConstant.MESSAGE_FLAG) {//通知监听者当前的播放进度
                 long played = player.getCurrentPosition();
                 long duration = player.getDuration();
-                for (OnStateChangeListenr l : listenrList) {
+                for (OnStateChangeListener l : listenerList) {
                     l.onPlayProgressChange(played, duration);
                 }
                 //间隔一秒发送一次更新播放进度的消息
@@ -434,7 +433,7 @@ public class MusicService extends Service {
         player.release();
 
         playingMusicList.clear();
-        listenrList.clear();
+        listenerList.clear();
         handler.removeMessages(AppConstant.MESSAGE_FLAG);
         audioManager.abandonAudioFocus(audioFocusListener); //注销音频管理服务
 //        AudioFocusRequest audioFocusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)

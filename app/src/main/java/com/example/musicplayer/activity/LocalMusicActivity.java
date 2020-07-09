@@ -42,6 +42,7 @@ import org.litepal.LitePal;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class LocalMusicActivity extends AppCompatActivity implements View.OnClickListener{
@@ -177,7 +178,7 @@ public class LocalMusicActivity extends AppCompatActivity implements View.OnClic
         Toolbar toolbar = findViewById(R.id.toolbar);
         toolbar.setTitle("本地音乐");
         setSupportActionBar(toolbar);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        Objects.requireNonNull(getSupportActionBar()).setDisplayHomeAsUpEnabled(true);
         setSupportActionBar(toolbar);
 
         //从数据库获取保存的本地音乐列表
@@ -206,21 +207,13 @@ public class LocalMusicActivity extends AppCompatActivity implements View.OnClic
         if(playingList.size() > 0) {
             //播放列表有曲目，显示所有音乐
             final PlayingMusicAdapter playingAdapter = new PlayingMusicAdapter(this, R.layout.playinglist_item, playingList);
-            builder.setAdapter(playingAdapter, new DialogInterface.OnClickListener() {
-                //监听列表项点击事件
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    serviceBinder.addPlayList(playingList.get(which));
-                }
-            });
+            //监听列表项点击事件
+            builder.setAdapter(playingAdapter, (dialog, which) -> serviceBinder.addPlayList(playingList.get(which)));
 
             //列表项中删除按钮的点击事件
-            playingAdapter.setOnDeleteButtonListener(new PlayingMusicAdapter.onDeleteButtonListener() {
-                @Override
-                public void onClick(int i) {
-                    serviceBinder.removeMusic(i);
-                    playingAdapter.notifyDataSetChanged();
-                }
+            playingAdapter.setOnDeleteButtonListener(i -> {
+                serviceBinder.removeMusic(i);
+                playingAdapter.notifyDataSetChanged();
             });
         }
         else {
@@ -302,7 +295,7 @@ public class LocalMusicActivity extends AppCompatActivity implements View.OnClic
     };
 
     // 实现监听器监听MusicService的变化，
-    private MusicService.OnStateChangeListenr listener = new MusicService.OnStateChangeListenr() {
+    private MusicService.OnStateChangeListener listener = new MusicService.OnStateChangeListener() {
 
         @Override
         public void onPlayProgressChange(long played, long duration) {}

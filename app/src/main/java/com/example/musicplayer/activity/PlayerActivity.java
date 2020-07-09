@@ -292,7 +292,7 @@ public class PlayerActivity extends AppCompatActivity implements View.OnClickLis
     };
 
     //实现监听器监听MusicService的变化，
-    private MusicService.OnStateChangeListenr listenr = new MusicService.OnStateChangeListenr() {
+    private MusicService.OnStateChangeListener listenr = new MusicService.OnStateChangeListener() {
 
         @Override
         public void onPlayProgressChange(long played, long duration) {

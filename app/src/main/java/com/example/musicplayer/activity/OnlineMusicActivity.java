@@ -36,12 +36,14 @@ import com.example.musicplayer.Utils;
 import com.example.musicplayer.enums.MusicType;
 import com.example.musicplayer.service.MusicService;
 
+import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
@@ -79,7 +81,7 @@ public class OnlineMusicActivity extends AppCompatActivity implements View.OnCli
 
         mainHanlder = new Handler(){
             @Override
-            public void handleMessage(Message msg) {
+            public void handleMessage(@NotNull Message msg) {
                 super.handleMessage(msg);
                 if (AppConstant.UPDATE_MUSIC == msg.what) {
                     //更新一首歌曲
@@ -182,7 +184,7 @@ public class OnlineMusicActivity extends AppCompatActivity implements View.OnCli
         Toolbar toolbar = findViewById(R.id.toolbar);
         toolbar.setTitle("网易云热歌榜");
         setSupportActionBar(toolbar);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        Objects.requireNonNull(getSupportActionBar()).setDisplayHomeAsUpEnabled(true);
         setSupportActionBar(toolbar);
 
         client = new OkHttpClient.Builder()
@@ -212,21 +214,13 @@ public class OnlineMusicActivity extends AppCompatActivity implements View.OnCli
         if(playingList.size() > 0) {
             //播放列表有曲目，显示所有音乐
             final PlayingMusicAdapter playingAdapter = new PlayingMusicAdapter(this, R.layout.playinglist_item, playingList);
-            builder.setAdapter(playingAdapter, new DialogInterface.OnClickListener() {
-                //监听列表项点击事件
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    serviceBinder.addPlayList(playingList.get(which));
-                }
-            });
+            //监听列表项点击事件
+            builder.setAdapter(playingAdapter, (dialog, which) -> serviceBinder.addPlayList(playingList.get(which)));
 
             //列表项中删除按钮的点击事件
-            playingAdapter.setOnDeleteButtonListener(new PlayingMusicAdapter.onDeleteButtonListener() {
-                @Override
-                public void onClick(int i) {
-                    serviceBinder.removeMusic(i);
-                    playingAdapter.notifyDataSetChanged();
-                }
+            playingAdapter.setOnDeleteButtonListener(i -> {
+                serviceBinder.removeMusic(i);
+                playingAdapter.notifyDataSetChanged();
             });
         }
         else {
@@ -308,7 +302,7 @@ public class OnlineMusicActivity extends AppCompatActivity implements View.OnCli
     };
 
     // 实现监听器监听MusicService的变化，
-    private MusicService.OnStateChangeListenr listenr = new MusicService.OnStateChangeListenr() {
+    private MusicService.OnStateChangeListener listenr = new MusicService.OnStateChangeListener() {
 
         @Override
         public void onPlayProgressChange(long played, long duration) {}
@@ -354,18 +348,13 @@ public class OnlineMusicActivity extends AppCompatActivity implements View.OnCli
                 .build();
         client.newCall(request).enqueue(new Callback() {
             @Override
-            public void onFailure(Call call, IOException e) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(OnlineMusicActivity.this, "网络错误", Toast.LENGTH_SHORT).show();
-                    }
-                });
+            public void onFailure(@NotNull Call call, @NotNull IOException e) {
+                runOnUiThread(() -> Toast.makeText(OnlineMusicActivity.this, "网络错误", Toast.LENGTH_SHORT).show());
             }
 
             @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                String result = response.body().string();
+            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+                String result = Objects.requireNonNull(response.body()).string();
                 Log.d(TAG, "onResponse: "+result);
                 try{
                     JSONObject obj = new JSONObject(result);
@@ -376,10 +365,8 @@ public class OnlineMusicActivity extends AppCompatActivity implements View.OnCli
 
                         String id = song.getString("id");
                         String songurl = "https://api.itooi.cn/netease/url?id=" + id + "&quality=128";
-//                        String songurl = song.getString("songUrl");
                         String name = song.getString("name");
                         String singer = song.getString("singer");
-//                        String pic = song.getString("imgUrl");
                         String pic = "https://api.itooi.cn/netease/pic?id=" + id;
 
                         //实例化一首音乐并发送到主线程更新
