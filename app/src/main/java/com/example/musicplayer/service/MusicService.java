@@ -17,6 +17,9 @@ import android.os.Message;
 import android.util.Log;
 
 import com.example.musicplayer.ActivityController;
+import androidx.annotation.RequiresApi;
+
+import com.example.musicplayer.ActivityController;
 import com.example.musicplayer.AppConstant;
 import com.example.musicplayer.MusicDTO;
 import com.example.musicplayer.enums.MusicType;
@@ -202,6 +205,7 @@ public class MusicService extends Service {
     }
 
 
+    //播放音乐
     private void playInner() {
 
         //获取音频焦点
@@ -222,8 +226,8 @@ public class MusicService extends Service {
 
 
     }
-
-    private void pauseInner() {
+    //暂停音乐
+    private void pauseInner(){
         player.pause();
 
         for (OnStateChangeListener l : listenerList) {
@@ -232,8 +236,8 @@ public class MusicService extends Service {
         // 暂停后不需要重新加载
         isNeedReload = false;
     }
-
-    private void playPreInner() {
+    //播放上一首
+    private void playPreInner(){
         //获取当前播放（或者被加载）音乐的上一首音乐
         //如果前面有要播放的音乐，把那首音乐设置成要播放的音乐
         int currentIndex = playingMusicList.indexOf(currentMusic);
@@ -243,10 +247,10 @@ public class MusicService extends Service {
             playInner();
         }
     }
-
+    //播放下一首
     private void playNextInner() {
 
-        if (playMode == AppConstant.TYPE_RANDOM) {
+        if (playMode == AppConstant.TYPE_RANDOM){
             //随机播放
             int i = (int) (0 + Math.random() * (playingMusicList.size() + 1));
             currentMusic = playingMusicList.get(i);

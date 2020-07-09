@@ -1,9 +1,9 @@
-package com.example.musicplayer.useLitepal;
+package com.example.musicplayer;
 
 
 import org.litepal.crud.LitePalSupport;
 
-public class UserLitePal extends LitePalSupport {
+public class UserDTO extends LitePalSupport {
 
 
 
@@ -28,7 +28,7 @@ public class UserLitePal extends LitePalSupport {
         this.phoneNum = phoneNum;
     }
 
-    public UserLitePal(String phoneNum, String password) {
+    public UserDTO(String phoneNum, String password) {
         this.phoneNum = phoneNum;
         this.password = password;
     }

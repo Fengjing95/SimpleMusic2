@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
@@ -25,6 +26,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -68,7 +70,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private static List<MusicDTO> musicList;
     private TextView navPhone;
-    private static List<Music> musicList;
     private MusicAdapter musicAdapter;
     private SharedPreferences spf;
     private MusicService.MusicServiceBinder serviceBinder;
