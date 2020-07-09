@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
@@ -24,6 +25,7 @@ import android.widget.RemoteViews;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -34,13 +36,13 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import com.bumptech.glide.Glide;
 import com.example.musicplayer.ActivityController;
 import com.example.musicplayer.AppConstant;
-import com.example.musicplayer.Music;
+import com.example.musicplayer.MusicDTO;
 import com.example.musicplayer.MusicAdapter;
 import com.example.musicplayer.PlayingMusicAdapter;
 import com.example.musicplayer.R;
 import com.example.musicplayer.Utils;
+import com.example.musicplayer.enums.MusicType;
 import com.example.musicplayer.service.MusicService;
-import com.example.musicplayer.useLitepal.MyMusic;
 import com.google.android.material.navigation.NavigationView;
 import com.jaeger.library.StatusBarUtil;
 
@@ -48,6 +50,8 @@ import org.litepal.LitePal;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 
@@ -63,11 +67,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private NavigationView navigationView;
     private TextView musicCountView;
 
-    private static List<Music> musicList;
+    private static List<MusicDTO> musicList;
     private MusicAdapter musicAdapter;
     private SharedPreferences spf;
     private MusicService.MusicServiceBinder serviceBinder;
 
+    @RequiresApi(api = Build.VERSION_CODES.N)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -83,15 +88,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         // 初始化音乐列表
         initMusicList();
+        loadCache();
 
         // 初始化配置
-        initsettings();
+        initSettings();
 
         // 点击列表项播放音乐
         musicListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Music music = musicList.get(position);
+                MusicDTO music = musicList.get(position);
                 serviceBinder.addPlayList(music);
             }
         });
@@ -100,27 +106,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         musicAdapter.setOnMoreButtonListener(new MusicAdapter.onMoreButtonListener() {
             @Override
             public void onClick(final int i) {
-                final Music music = musicList.get(i);
+                final MusicDTO music = musicList.get(i);
 
                 //弹出操作对话框
                 final String[] items = new String[] {"添加到播放列表", "删除"};
                 AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-                builder.setTitle(music.title+"-"+music.artist);
+                builder.setTitle(music.getTitle()+"-"+music.getArtist());
 
-                builder.setItems(items, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        switch (which){
-                            case 0:
-                                serviceBinder.addPlayList(music);
-                                break;
-                            case 1:
-                                //从列表和数据库中删除
-                                musicList.remove(i);
-                                LitePal.deleteAll(MyMusic.class, "title=?", music.title);
-                                musicAdapter.notifyDataSetChanged();
-                                break;
-                        }
+                builder.setItems(items, (dialog, which) -> {
+                    switch (which){
+                        case 0:
+                            serviceBinder.addPlayList(music);
+                            break;
+                        case 1:
+                            //从列表和数据库中删除
+                            musicList.remove(i);
+                            LitePal.deleteAll(MusicDTO.class, "title = ? and musicType = ?", music.getTitle(), "" + music.getMusicType());
+                            musicAdapter.notifyDataSetChanged();
+                            break;
                     }
                 });
                 builder.create().show();
@@ -128,8 +131,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         });
     }
 
-
-
+    @RequiresApi(api = Build.VERSION_CODES.N)
+    private void loadCache() {
+        List<MusicDTO> played = LitePal.findAll(MusicDTO.class)
+                .stream()
+                .filter(i -> i.getMusicType() != MusicType.PLAYED_MUSIC)
+                .collect(Collectors.toList());
+        ConcurrentHashMap<MusicDTO, Boolean> concurrentHashMap = new ConcurrentHashMap<>();
+        played.forEach(i -> concurrentHashMap.put(i, true));
+        Utils.initMusicCache(concurrentHashMap);
+    }
 
 
     // 初始化活动
@@ -174,18 +185,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         bindService(intent, serviceConnection, BIND_AUTO_CREATE);
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.N)
     private void initMusicList(){
         Log.d(TAG, "initMusicList: 2");
         //从数据库获取我的音乐
         musicList = new ArrayList<>();
 
-        List<MyMusic> list = LitePal.findAll(MyMusic.class);
-        Log.d(TAG, "initMusicList: 2--------"+list.size());
-        for (MyMusic s:list){
-            Music m = new Music(s.songUrl, s.title, s.artist, s.imgUrl, s.isOnlineMusic);
+        List<MusicDTO> list = LitePal.findAll(MusicDTO.class)
+                    .stream()
+                    .filter(i -> i.getMusicType() != MusicType.MY_MUSIC)
+                    .collect(Collectors.toList());
 
-            musicList.add(m);
-        }
+        list.forEach(i -> i.setMusicType(MusicType.PLAYING_MUSIC));
+        musicList.addAll(list);
+        Log.d(TAG, "initMusicList: 2--------"+list.size());
+
 
         // 音乐列表绑定适配器
         musicAdapter = new MusicAdapter(this, R.layout.music_item, musicList);
@@ -193,11 +207,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     // 读取配置
-    private void initsettings(){
+    private void initSettings(){
         spf = getSharedPreferences("settings", MODE_PRIVATE);
         //累计听歌数量
-        Utils.count = spf.getInt("listen_count", 0);
-        musicCountView.setText("累计听歌"+ String.valueOf(Utils.count) +"首");
+        musicCountView.setText("累计听歌"+ Utils.MUSIC_CACHE.size() +"首");
     }
 
     // 保存配置
@@ -205,7 +218,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         SharedPreferences.Editor editor = spf.edit();
 
         //累计听歌数量
-        editor.putInt("listen_count", Utils.count);
+        editor.putInt("listen_count", Utils.MUSIC_CACHE.size());
         // 播放模式
         int mode = serviceBinder.getPlayMode();
         editor.putInt("play_mode", mode);
@@ -281,7 +294,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         //设计对话框的显示标题
         builder.setTitle("播放列表");
         //获取播放列表
-        final List<Music> playingList = serviceBinder.getPlayingList();
+        final List<MusicDTO> playingList = serviceBinder.getPlayingList();
 
         if(playingList.size() > 0) {
 
@@ -325,22 +338,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             //注册监听器
             serviceBinder.registerOnStateChangeListener(listenr);
 
-            Music item = serviceBinder.getCurrentMusic();
+            MusicDTO item = serviceBinder.getCurrentMusic();
 
             if(item != null){
                 //当前有可播放音乐
-                playingTitleView.setText(item.title);
-                playingArtistView.setText(item.artist);
-                if (item.isOnlineMusic){
+                playingTitleView.setText(item.getTitle());
+                playingArtistView.setText(item.getArtist());
+                if (item.isOnlineMusic()){
                     Glide.with(getApplicationContext())
-                            .load(item.imgUrl)
+                            .load(item.getImgUrl())
                             .placeholder(R.drawable.defult_music_img)
                             .error(R.drawable.defult_music_img)
                             .into(playingImgView);
                 }
                 else {
                     ContentResolver resolver = getContentResolver();
-                    Bitmap img = Utils.getLocalMusicBmp(resolver, item.imgUrl);
+                    Bitmap img = Utils.getLocalMusicBmp(resolver, item.getImgUrl());
                     Glide.with(getApplicationContext())
                             .load(img)
                             .placeholder(R.drawable.defult_music_img)
@@ -360,27 +373,27 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     };
 
     // 实现监听器监听MusicService的变化，
-    private MusicService.OnStateChangeListenr listenr = new MusicService.OnStateChangeListenr() {
+    private MusicService.OnStateChangeListener listenr = new MusicService.OnStateChangeListener() {
 
         @Override
         public void onPlayProgressChange(long played, long duration) {}
 
         @Override
-        public void onPlay(Music item) {
+        public void onPlay(MusicDTO item) {
             //播放状态变为播放时
             btnPlayOrPause.setImageResource(R.drawable.zanting);
-            playingTitleView.setText(item.title);
-            playingArtistView.setText(item.artist);
-            if (item.isOnlineMusic){
+            playingTitleView.setText(item.getTitle());
+            playingArtistView.setText(item.getArtist());
+            if (item.isOnlineMusic()){
                 Glide.with(getApplicationContext())
-                        .load(item.imgUrl)
+                        .load(item.getImgUrl())
                         .placeholder(R.drawable.defult_music_img)
                         .error(R.drawable.defult_music_img)
                         .into(playingImgView);
             }
             else {
                 ContentResolver resolver = getContentResolver();
-                Bitmap img = Utils.getLocalMusicBmp(resolver, item.imgUrl);
+                Bitmap img = Utils.getLocalMusicBmp(resolver, item.getImgUrl());
                 Glide.with(getApplicationContext())
                         .load(img)
                         .placeholder(R.drawable.defult_music_img)
@@ -397,14 +410,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     };
 
     // 对外接口, 插入一首歌曲
-    public static  void addMymusic(Music item){
+    public static  void addMymusic(MusicDTO item){
         if (musicList.contains(item)) {
             return;
         }
         //添加到列表和数据库
         musicList.add(0, item);
-        MyMusic myMusic = new MyMusic(item.songUrl, item.title, item.artist, item.imgUrl, item.isOnlineMusic);
-        myMusic.save();
+        MusicDTO music = (MusicDTO) item.clone();
+        music.setMusicType(MusicType.ONLINE_MUSIC);
+        music.save();
     }
 
 //    // 对外接口, 插入多首歌曲
@@ -481,7 +495,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onResume() {
         super.onResume();
-        musicCountView.setText("累计听歌"+ Integer.toString(Utils.count)+"首");
+        musicCountView.setText("累计听歌"+  Utils.MUSIC_CACHE.size() +"首");
         musicAdapter.notifyDataSetChanged(); //刷新列表
     }
 

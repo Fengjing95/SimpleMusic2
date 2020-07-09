@@ -18,9 +18,8 @@ import android.util.Log;
 
 import com.example.musicplayer.ActivityController;
 import com.example.musicplayer.AppConstant;
-import com.example.musicplayer.Music;
-import com.example.musicplayer.Utils;
-import com.example.musicplayer.useLitepal.PlayingMusic;
+import com.example.musicplayer.MusicDTO;
+import com.example.musicplayer.enums.MusicType;
 
 import org.litepal.LitePal;
 
@@ -32,11 +31,11 @@ import java.util.List;
 public class MusicService extends Service {
 
     private MediaPlayer player;
-    private List<Music> playingMusicList;
-    private List<OnStateChangeListenr> listenrList;
+    private List<MusicDTO> playingMusicList;
+    private List<OnStateChangeListener> listenerList;
     private MusicServiceBinder binder;
     private AudioManager audioManager;
-    private Music currentMusic; // 当前就绪的音乐
+    private MusicDTO currentMusic; // 当前就绪的音乐
     private boolean autoPlayAfterFocus;    // 获取焦点之后是否自动播放
     private boolean isNeedReload;     // 播放时是否需要重新加载
     private int playMode;  // 播放模式
@@ -46,7 +45,7 @@ public class MusicService extends Service {
     public void onCreate() {
         super.onCreate();
         initPlayList();     //初始化播放列表
-        listenrList = new ArrayList<>();    //初始化监听器列表
+        listenerList = new ArrayList<>();    //初始化监听器列表
         player = new MediaPlayer();   //初始化播放器
         player.setOnCompletionListener(onCompletionListener);   //设置播放完成的监听器
         binder = new MusicServiceBinder();
@@ -56,9 +55,10 @@ public class MusicService extends Service {
     // 初始化播放列表
     private void initPlayList() {
         playingMusicList = new ArrayList<>();
-        List<PlayingMusic> list = LitePal.findAll(PlayingMusic.class);
-        for (PlayingMusic i : list) {
-            Music m = new Music(i.songUrl, i.title, i.artist, i.imgUrl, i.isOnlineMusic);
+        List<MusicDTO> list = LitePal.findAll(MusicDTO.class);
+        for (MusicDTO i : list) {
+            MusicDTO m = (MusicDTO) i.clone();
+            m.setMusicType(MusicType.MY_MUSIC);
             playingMusicList.add(m);
         }
         if (playingMusicList.size() > 0) {
@@ -73,8 +73,6 @@ public class MusicService extends Service {
         @Override
         public void onCompletion(MediaPlayer mp) {
 
-            Utils.count++; //累计听歌数量+1
-
             if (playMode == AppConstant.TYPE_SINGLE) {
                 //单曲循环
                 isNeedReload = true;
@@ -86,10 +84,10 @@ public class MusicService extends Service {
     };
 
     //对外监听器接口
-    public interface OnStateChangeListenr {
+    public interface OnStateChangeListener {
         void onPlayProgressChange(long played, long duration);  //播放进度变化
 
-        void onPlay(Music item);    //播放状态变化
+        void onPlay(MusicDTO item);    //播放状态变化
 
         void onPause();   //播放状态变化
     }
@@ -98,12 +96,12 @@ public class MusicService extends Service {
     public class MusicServiceBinder extends Binder {
 
         // 添加一首歌曲
-        public void addPlayList(Music item) {
+        public void addPlayList(MusicDTO item) {
             addPlayListInner(item);
         }
 
         // 添加多首歌曲
-        public void addPlayList(List<Music> items) {
+        public void addPlayList(List<MusicDTO> items) {
             addPlayListInner(items);
         }
 
@@ -147,7 +145,7 @@ public class MusicService extends Service {
         }
 
         // 获取当前就绪的音乐
-        public Music getCurrentMusic() {
+        public MusicDTO getCurrentMusic() {
             return getCurrentMusicInner();
         }
 
@@ -157,25 +155,26 @@ public class MusicService extends Service {
         }
 
         // 获取播放列表
-        public List<Music> getPlayingList() {
+        public List<MusicDTO> getPlayingList() {
             return getPlayingListInner();
         }
 
         // 注册监听器
-        public void registerOnStateChangeListener(OnStateChangeListenr l) {
-            listenrList.add(l);
+        public void registerOnStateChangeListener(OnStateChangeListener l) {
+            listenerList.add(l);
         }
 
         // 注销监听器
-        public void unregisterOnStateChangeListener(OnStateChangeListenr l) {
-            listenrList.remove(l);
+        public void unregisterOnStateChangeListener(OnStateChangeListener l) {
+            listenerList.remove(l);
         }
     }
 
-    private void addPlayListInner(Music music) {
+    private void addPlayListInner(MusicDTO music) {
         if (!playingMusicList.contains(music)) {
             playingMusicList.add(0, music);
-            PlayingMusic playingMusic = new PlayingMusic(music.songUrl, music.title, music.artist, music.imgUrl, music.isOnlineMusic);
+            MusicDTO playingMusic = (MusicDTO) music.clone();
+            playingMusic.setMusicType(MusicType.PLAYING_MUSIC);
             playingMusic.save();
         }
         currentMusic = music;
@@ -183,12 +182,14 @@ public class MusicService extends Service {
         playInner();
     }
 
-    private void addPlayListInner(List<Music> musicList) {
+    private void addPlayListInner(List<MusicDTO> musicList) {
         playingMusicList.clear();
-        LitePal.deleteAll(PlayingMusic.class);
+        LitePal.deleteAll(MusicDTO.class);
         playingMusicList.addAll(musicList);
-        for (Music i : musicList) {
-            PlayingMusic playingMusic = new PlayingMusic(i.songUrl, i.title, i.artist, i.imgUrl, i.isOnlineMusic);
+        for (MusicDTO i : musicList) {
+
+            MusicDTO playingMusic = (MusicDTO) i.clone();
+            playingMusic.setMusicType(MusicType.PLAYING_MUSIC);
             playingMusic.save();
         }
         currentMusic = playingMusicList.get(0);
@@ -196,7 +197,7 @@ public class MusicService extends Service {
     }
 
     private void removeMusicInner(int i) {
-        LitePal.deleteAll(PlayingMusic.class, "title=?", playingMusicList.get(i).title);
+        LitePal.deleteAll(MusicDTO.class, "title=?", playingMusicList.get(i).getTitle());
         playingMusicList.remove(i);
     }
 
@@ -225,7 +226,7 @@ public class MusicService extends Service {
     private void pauseInner() {
         player.pause();
 
-        for (OnStateChangeListenr l : listenrList) {
+        for (OnStateChangeListener l : listenerList) {
             l.onPause();
         }
         // 暂停后不需要重新加载
@@ -267,7 +268,7 @@ public class MusicService extends Service {
         player.seekTo(pos);
     }
 
-    private Music getCurrentMusicInner() {
+    private MusicDTO getCurrentMusicInner() {
         return currentMusic;
     }
 
@@ -275,7 +276,7 @@ public class MusicService extends Service {
         return player.isPlaying();
     }
 
-    public List<Music> getPlayingListInner() {
+    public List<MusicDTO> getPlayingListInner() {
         return playingMusicList;
     }
 
@@ -288,11 +289,11 @@ public class MusicService extends Service {
     }
 
     // 将要播放的音乐载入MediaPlayer，但是并不播放
-    private void prepareToPlay(Music item) {
+    private void prepareToPlay(MusicDTO item) {
         try {
             player.reset();
             //设置播放音乐的地址
-            player.setDataSource(MusicService.this, Uri.parse(item.songUrl));
+            player.setDataSource(MusicService.this, Uri.parse(item.getSongUrl()));
             //准备播放音乐
             player.prepare();
         } catch (IOException e) {
@@ -301,7 +302,7 @@ public class MusicService extends Service {
     }
 
     // 播放音乐，根据reload标志位判断是非需要重新加载音乐
-    private void playMusicItem(Music item, boolean reload) {
+    private void playMusicItem(MusicDTO item, boolean reload) {
 
         if (item == null) {
             return;
@@ -312,7 +313,7 @@ public class MusicService extends Service {
             prepareToPlay(item);
         }
         player.start();
-        for (OnStateChangeListenr l : listenrList) {
+        for (OnStateChangeListener l : listenerList) {
             l.onPlay(item);
         }
         isNeedReload = true;
@@ -335,22 +336,22 @@ public class MusicService extends Service {
 
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (intent.getAction().equals(PLAY_NEXT)) {//PLAY_NEXT
+            if (PLAY_NEXT.equals(intent.getAction())) {//PLAY_NEXT
                 Log.e("PlayerReceiver", "通知栏点击了下一首");
                 serviceBinder.playNext();
             }
-            if (intent.getAction().equals(PLAY_PRE)) {
+            if (PLAY_PRE.equals(intent.getAction())) {
                 Log.e("PlayerReceiver", "通知栏点击了上一首");
                 serviceBinder.playPre();
             }
-            if (intent.getAction().equals(PLAY_PAUSE)) {
+            if (PLAY_PAUSE.equals(intent.getAction())) {
                 Log.e("PlayerReceiver", "通知栏点击了暂停");
             }
-            if (intent.getAction().equals(PLAY_PLAY)) {
+            if (PLAY_PLAY.equals(intent.getAction())) {
                 Log.e("PlayerReceiver", "通知栏点击了开始");
                 serviceBinder.playOrPause();
             }
-            if (intent.getAction().equals(CLOSE)) {
+            if (CLOSE.equals(intent.getAction())) {
                 Log.e("PlayerReceiver", "通知栏点击了close");
                 @SuppressLint("WrongConstant") NotificationManager manager =
                         (NotificationManager) context.getSystemService("notification");
@@ -366,17 +367,14 @@ public class MusicService extends Service {
 
         @Override
         public void handleMessage(Message msg) {
-            switch (msg.what) {
-                case AppConstant.MESSAGE_FLAG:
-                    //通知监听者当前的播放进度
-                    long played = player.getCurrentPosition();
-                    long duration = player.getDuration();
-                    for (OnStateChangeListenr l : listenrList) {
-                        l.onPlayProgressChange(played, duration);
-                    }
-                    //间隔一秒发送一次更新播放进度的消息
-                    sendEmptyMessageDelayed(AppConstant.MESSAGE_FLAG, 1000);
-                    break;
+            if (msg.what == AppConstant.MESSAGE_FLAG) {//通知监听者当前的播放进度
+                long played = player.getCurrentPosition();
+                long duration = player.getDuration();
+                for (OnStateChangeListener l : listenerList) {
+                    l.onPlayProgressChange(played, duration);
+                }
+                //间隔一秒发送一次更新播放进度的消息
+                sendEmptyMessageDelayed(AppConstant.MESSAGE_FLAG, 1000);
             }
         }
     };
@@ -435,7 +433,7 @@ public class MusicService extends Service {
         player.release();
 
         playingMusicList.clear();
-        listenrList.clear();
+        listenerList.clear();
         handler.removeMessages(AppConstant.MESSAGE_FLAG);
         audioManager.abandonAudioFocus(audioFocusListener); //注销音频管理服务
 //        AudioFocusRequest audioFocusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)

@@ -8,11 +8,12 @@ import android.net.Uri;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Utils {
 
-    //累计听歌数量
-    public static int count;
+    //累计听歌
+    public static ConcurrentHashMap<MusicDTO, Boolean> MUSIC_CACHE = new ConcurrentHashMap<>();
 
     // 获取本地音乐封面图片
     public static Bitmap getLocalMusicBmp(ContentResolver res, String musicPic) {
@@ -36,5 +37,11 @@ public class Utils {
         SimpleDateFormat dateFormat = new SimpleDateFormat("mm:ss");
         Date data = new Date(time);
         return dateFormat.format(data);
+    }
+    public static void initMusicCache(ConcurrentHashMap<MusicDTO, Boolean> map) {
+        MUSIC_CACHE = map;
+    }
+    public static ConcurrentHashMap<MusicDTO, Boolean> getMusicCache() {
+        return MUSIC_CACHE;
     }
 }

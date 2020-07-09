@@ -15,7 +15,6 @@ import android.os.Message;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.AdapterView;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
@@ -28,19 +27,23 @@ import androidx.appcompat.widget.Toolbar;
 
 import com.bumptech.glide.Glide;
 import com.example.musicplayer.ActivityController;
-import com.example.musicplayer.Music;
+import com.example.musicplayer.AppConstant;
+import com.example.musicplayer.MusicDTO;
 import com.example.musicplayer.MusicAdapter;
 import com.example.musicplayer.PlayingMusicAdapter;
 import com.example.musicplayer.R;
 import com.example.musicplayer.Utils;
+import com.example.musicplayer.enums.MusicType;
 import com.example.musicplayer.service.MusicService;
 
+import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
@@ -58,7 +61,7 @@ public class OnlineMusicActivity extends AppCompatActivity implements View.OnCli
     private ImageView playingImgView;
     private ImageView btnPlayOrPause;
 
-    private List<Music> onlinemusic_list;
+    private List<MusicDTO> onlinemusic_list;
     private MusicService.MusicServiceBinder serviceBinder;
     private MusicAdapter adapter;
 
@@ -78,59 +81,48 @@ public class OnlineMusicActivity extends AppCompatActivity implements View.OnCli
 
         mainHanlder = new Handler(){
             @Override
-            public void handleMessage(Message msg) {
+            public void handleMessage(@NotNull Message msg) {
                 super.handleMessage(msg);
-                switch (msg.what){
-                    case 60:
-                        //更新一首歌曲
-                        Music music = (Music) msg.obj;
-                        onlinemusic_list.add(music);
-                        adapter.notifyDataSetChanged();
-                        musicCountView.setText("播放全部(共" + onlinemusic_list.size() + "首)");
-                        break;
+                if (AppConstant.UPDATE_MUSIC == msg.what) {
+                    //更新一首歌曲
+                    MusicDTO music = (MusicDTO) msg.obj;
+                    onlinemusic_list.add(music);
+                    adapter.notifyDataSetChanged();
+                    musicCountView.setText("播放全部(共" + onlinemusic_list.size() + "首)");
                 }
             }
         };
 
         // 列表项点击事件
-        musicListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Music music = onlinemusic_list.get(position);
-                serviceBinder.addPlayList(music);
-            }
+        musicListView.setOnItemClickListener((parent, view, position, id) -> {
+            MusicDTO music = onlinemusic_list.get(position);
+            serviceBinder.addPlayList(music);
         });
 
         //列表项中更多按钮的点击事件
-        adapter.setOnMoreButtonListener(new MusicAdapter.onMoreButtonListener() {
-            @Override
-            public void onClick(final int i) {
-                final Music music = onlinemusic_list.get(i);
-                final String[] items = new String[] {"收藏到我的音乐", "添加到播放列表", "删除"};
-                AlertDialog.Builder builder = new AlertDialog.Builder(OnlineMusicActivity.this);
-                builder.setTitle(music.title+"-"+music.artist);
+        adapter.setOnMoreButtonListener(i -> {
+            final MusicDTO music = onlinemusic_list.get(i);
+            final String[] items = new String[] {"收藏到我的音乐", "添加到播放列表", "删除"};
+            AlertDialog.Builder builder = new AlertDialog.Builder(OnlineMusicActivity.this);
+            builder.setTitle(music.getTitle()+"-"+music.getArtist());
 
-                builder.setItems(items, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        switch (which){
-                            case 0:
-                                MainActivity.addMymusic(music);
-                                break;
-                            case 1:
-                                serviceBinder.addPlayList(music);
-                                break;
-                            case 2:
-                                //从列表中删除
-                                onlinemusic_list.remove(i);
-                                adapter.notifyDataSetChanged();
-                                musicCountView.setText("播放全部(共"+onlinemusic_list.size()+"首)");
-                                break;
-                        }
-                    }
-                });
-                builder.create().show();
-            }
+            builder.setItems(items, (dialog, which) -> {
+                switch (which){
+                    case 0:
+                        MainActivity.addMymusic(music);
+                        break;
+                    case 1:
+                        serviceBinder.addPlayList(music);
+                        break;
+                    case 2:
+                        //从列表中删除
+                        onlinemusic_list.remove(i);
+                        adapter.notifyDataSetChanged();
+                        musicCountView.setText("播放全部(共"+onlinemusic_list.size()+"首)");
+                        break;
+                }
+            });
+            builder.create().show();
         });
 
     }
@@ -192,7 +184,7 @@ public class OnlineMusicActivity extends AppCompatActivity implements View.OnCli
         Toolbar toolbar = findViewById(R.id.toolbar);
         toolbar.setTitle("网易云热歌榜");
         setSupportActionBar(toolbar);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        Objects.requireNonNull(getSupportActionBar()).setDisplayHomeAsUpEnabled(true);
         setSupportActionBar(toolbar);
 
         client = new OkHttpClient.Builder()
@@ -217,26 +209,18 @@ public class OnlineMusicActivity extends AppCompatActivity implements View.OnCli
         builder.setTitle("播放列表");
 
         //获取播放列表
-        final List<Music> playingList = serviceBinder.getPlayingList();
+        final List<MusicDTO> playingList = serviceBinder.getPlayingList();
 
         if(playingList.size() > 0) {
             //播放列表有曲目，显示所有音乐
             final PlayingMusicAdapter playingAdapter = new PlayingMusicAdapter(this, R.layout.playinglist_item, playingList);
-            builder.setAdapter(playingAdapter, new DialogInterface.OnClickListener() {
-                //监听列表项点击事件
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    serviceBinder.addPlayList(playingList.get(which));
-                }
-            });
+            //监听列表项点击事件
+            builder.setAdapter(playingAdapter, (dialog, which) -> serviceBinder.addPlayList(playingList.get(which)));
 
             //列表项中删除按钮的点击事件
-            playingAdapter.setOnDeleteButtonListener(new PlayingMusicAdapter.onDeleteButtonListener() {
-                @Override
-                public void onClick(int i) {
-                    serviceBinder.removeMusic(i);
-                    playingAdapter.notifyDataSetChanged();
-                }
+            playingAdapter.setOnDeleteButtonListener(i -> {
+                serviceBinder.removeMusic(i);
+                playingAdapter.notifyDataSetChanged();
             });
         }
         else {
@@ -263,23 +247,23 @@ public class OnlineMusicActivity extends AppCompatActivity implements View.OnCli
             //注册监听器
             serviceBinder.registerOnStateChangeListener(listenr);
 
-            Music item = serviceBinder.getCurrentMusic();
+            MusicDTO item = serviceBinder.getCurrentMusic();
 
             if (serviceBinder.isPlaying()){
                 //如果正在播放音乐, 更新控制栏信息
                 btnPlayOrPause.setImageResource(R.drawable.zanting);
-                playingTitleView.setText(item.title);
-                playingArtistView.setText(item.artist);
-                if (item.isOnlineMusic){
+                playingTitleView.setText(item.getTitle());
+                playingArtistView.setText(item.getArtist());
+                if (item.isOnlineMusic()){
                     Glide.with(getApplicationContext())
-                            .load(item.imgUrl)
+                            .load(item.getImgUrl())
                             .placeholder(R.drawable.defult_music_img)
                             .error(R.drawable.defult_music_img)
                             .into(playingImgView);
                 }
                 else {
                     ContentResolver resolver = getContentResolver();
-                    Bitmap img = Utils.getLocalMusicBmp(resolver, item.imgUrl);
+                    Bitmap img = Utils.getLocalMusicBmp(resolver, item.getImgUrl());
                     Glide.with(getApplicationContext())
                             .load(img)
                             .placeholder(R.drawable.defult_music_img)
@@ -290,18 +274,18 @@ public class OnlineMusicActivity extends AppCompatActivity implements View.OnCli
             else if (item != null){
                 //当前有可播放音乐但没有播放
                 btnPlayOrPause.setImageResource(R.drawable.bofang);
-                playingTitleView.setText(item.title);
-                playingArtistView.setText(item.artist);
-                if (item.isOnlineMusic){
+                playingTitleView.setText(item.getTitle());
+                playingArtistView.setText(item.getArtist());
+                if (item.isOnlineMusic()){
                     Glide.with(getApplicationContext())
-                            .load(item.imgUrl)
+                            .load(item.getImgUrl())
                             .placeholder(R.drawable.defult_music_img)
                             .error(R.drawable.defult_music_img)
                             .into(playingImgView);
                 }
                 else {
                     ContentResolver resolver = getContentResolver();
-                    Bitmap img = Utils.getLocalMusicBmp(resolver, item.imgUrl);
+                    Bitmap img = Utils.getLocalMusicBmp(resolver, item.getImgUrl());
                     Glide.with(getApplicationContext())
                             .load(img)
                             .placeholder(R.drawable.defult_music_img)
@@ -318,28 +302,28 @@ public class OnlineMusicActivity extends AppCompatActivity implements View.OnCli
     };
 
     // 实现监听器监听MusicService的变化，
-    private MusicService.OnStateChangeListenr listenr = new MusicService.OnStateChangeListenr() {
+    private MusicService.OnStateChangeListener listenr = new MusicService.OnStateChangeListener() {
 
         @Override
         public void onPlayProgressChange(long played, long duration) {}
 
         @Override
-        public void onPlay(Music item) {
+        public void onPlay(MusicDTO item) {
             //播放状态变为播放时
             btnPlayOrPause.setImageResource(R.drawable.zanting);
-            playingTitleView.setText(item.title);
-            playingArtistView.setText(item.artist);
+            playingTitleView.setText(item.getTitle());
+            playingArtistView.setText(item.getArtist());
             btnPlayOrPause.setEnabled(true);
-            if (item.isOnlineMusic){
+            if (item.isOnlineMusic()){
                 Glide.with(getApplicationContext())
-                        .load(item.imgUrl)
+                        .load(item.getImgUrl())
                         .placeholder(R.drawable.defult_music_img)
                         .error(R.drawable.defult_music_img)
                         .into(playingImgView);
             }
             else {
                 ContentResolver resolver = getContentResolver();
-                Bitmap img = Utils.getLocalMusicBmp(resolver, item.imgUrl);
+                Bitmap img = Utils.getLocalMusicBmp(resolver, item.getImgUrl());
                 Glide.with(getApplicationContext())
                         .load(img)
                         .placeholder(R.drawable.defult_music_img)
@@ -364,18 +348,13 @@ public class OnlineMusicActivity extends AppCompatActivity implements View.OnCli
                 .build();
         client.newCall(request).enqueue(new Callback() {
             @Override
-            public void onFailure(Call call, IOException e) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(OnlineMusicActivity.this, "网络错误", Toast.LENGTH_SHORT).show();
-                    }
-                });
+            public void onFailure(@NotNull Call call, @NotNull IOException e) {
+                runOnUiThread(() -> Toast.makeText(OnlineMusicActivity.this, "网络错误", Toast.LENGTH_SHORT).show());
             }
 
             @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                String result = response.body().string();
+            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+                String result = Objects.requireNonNull(response.body()).string();
                 Log.d(TAG, "onResponse: "+result);
                 try{
                     JSONObject obj = new JSONObject(result);
@@ -386,22 +365,20 @@ public class OnlineMusicActivity extends AppCompatActivity implements View.OnCli
 
                         String id = song.getString("id");
                         String songurl = "https://api.itooi.cn/netease/url?id=" + id + "&quality=128";
-//                        String songurl = song.getString("songUrl");
                         String name = song.getString("name");
                         String singer = song.getString("singer");
-//                        String pic = song.getString("imgUrl");
                         String pic = "https://api.itooi.cn/netease/pic?id=" + id;
 
                         //实例化一首音乐并发送到主线程更新
-                        Music music = new Music(songurl, name, singer, pic, true);
+                        MusicDTO music = new MusicDTO(songurl, name, singer, pic, true, MusicType.ONLINE_MUSIC);
                         Message message = mainHanlder.obtainMessage();
-                        message.what = 60;
+                        message.what = AppConstant.UPDATE_MUSIC;
                         message.obj = music;
                         mainHanlder.sendMessage(message);
                         Thread.sleep(30);
                     }
                 }
-                catch (Exception e){}
+                catch (Exception ignored){}
             }
         });
     }
@@ -409,10 +386,9 @@ public class OnlineMusicActivity extends AppCompatActivity implements View.OnCli
     // 返回按钮
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()){
-            case android.R.id.home:
-                finish();
-                return true;
+        if (item.getItemId() == android.R.id.home) {
+            finish();
+            return true;
         }
         return super.onOptionsItemSelected(item);
     }

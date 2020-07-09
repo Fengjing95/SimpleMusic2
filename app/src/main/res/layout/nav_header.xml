@@ -13,15 +13,19 @@
         android:layout_centerVertical="true"
         android:layout_marginStart="20dp"/>
 
-    <TextView
+    <EditText
+        android:id="@+id/nav_phone"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_toEndOf="@id/nav_img"
         android:layout_marginTop="50dp"
         android:layout_marginStart="20dp"
-        android:text="ZZU"
+       android:text="张三"
         android:textColor="#fff"
-        android:textSize="20sp"/>
+        android:textSize="20sp"
+        android:background="@null"
+        style="@android:style/Widget.TextView"
+        />
     <TextView
         android:id="@+id/nav_num"
         android:layout_width="wrap_content"
