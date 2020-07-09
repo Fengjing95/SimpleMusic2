@@ -1,6 +1,7 @@
 package com.example.musicplayer.activity;
 
 import android.app.Notification;
+import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.ComponentName;
@@ -25,20 +26,21 @@ import android.widget.RemoteViews;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 
 import com.bumptech.glide.Glide;
 import com.example.musicplayer.ActivityController;
 import com.example.musicplayer.AppConstant;
-import com.example.musicplayer.MusicDTO;
 import com.example.musicplayer.MusicAdapter;
+import com.example.musicplayer.MusicDTO;
 import com.example.musicplayer.PlayingMusicAdapter;
 import com.example.musicplayer.R;
 import com.example.musicplayer.Utils;
@@ -83,7 +85,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         ActivityController.addActivity(this);
 
         // 通知栏状态
-        stateBar();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            stateBar();
+        }
 
         // 初始化活动
         initActivity();
@@ -277,6 +281,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         });
     }
+    public void play() {
+        serviceBinder.playOrPause();
+    }
     // 监听组件
     @Override
     public void onClick(View v) {
@@ -442,8 +449,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //    }
 
 
+    private String createNotificationChannel(String channelID, String channelNAME, int level) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            NotificationChannel channel = new NotificationChannel(channelID, channelNAME, level);
+            manager.createNotificationChannel(channel);
+            return channelID;
+        } else {
+            return null;
+        }
+    }
 
 
+
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
     public void stateBar() {
         NotificationManager manager = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
         Intent intent = new Intent(MainActivity.this, MainActivity.class);
@@ -451,16 +471,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         RemoteViews remoteViews = new RemoteViews(getPackageName(), R.layout.notification);
 
         Intent intentPause = new Intent("play_play");//发送播放音乐的通知(z暂停/播放，动态调整)
-        PendingIntent pIntentPause = PendingIntent.getBroadcast(this, 0,
+        PendingIntent pIntentPause = PendingIntent.getBroadcast(getBaseContext(), 0,
                 intentPause, 0);
         remoteViews.setOnClickPendingIntent(R.id.playandpause, pIntentPause);
 
         Intent intentNext = new Intent("play_next");//发送播放下一曲的通知
-        PendingIntent pIntentNext = PendingIntent.getBroadcast(this, 0,
+        PendingIntent pIntentNext = PendingIntent.getBroadcast(getBaseContext(), 0,
                 intentNext, 0);
         remoteViews.setOnClickPendingIntent(R.id.next, pIntentNext);
 
-        Intent intentLast = new Intent("play_pre");//发送播放上一曲的通知
+        Intent intentLast = new Intent().setAction("play_pre");//发送播放上一曲的通知
         PendingIntent pIntentLast = PendingIntent.getBroadcast(this, 0,
                 intentLast, 0);
         remoteViews.setOnClickPendingIntent(R.id.pre, pIntentLast);
@@ -470,14 +490,27 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 intentCancel, 0);
         remoteViews.setOnClickPendingIntent(R.id.close, pIntentCancel);
 
-        Notification notification = new Notification.Builder(MainActivity.this)
+        String channelId = createNotificationChannel("my_channel_ID", "my_channel_NAME", NotificationManager.IMPORTANCE_HIGH);
+        assert channelId != null;
+        Notification notification = new NotificationCompat.Builder(this, channelId)
                 .setSmallIcon(R.drawable.app_img)
                 .setContentIntent(pendingIntent)
                 .setOngoing(true)
                 .setContent(remoteViews)
                 .build();
 
-        manager.notify(1, notification);
+        manager.notify(100, notification);
+
+
+
+//        PendingIntent pendingIntent2 = PendingIntent.getBroadcast(getBaseContext(), 0, intentCancel, 0);
+//        Notification notification2 = new NotificationCompat.Builder(this, channelId)
+//                .setContentTitle("213")
+//                .setContentText("12355")
+//                .setSmallIcon(R.drawable.app_img)
+//                .setContentIntent(pendingIntent2)
+//                .build();
+//        manager.notify(101, notification2);
     }
 
     // 显示菜单
