@@ -34,31 +34,28 @@
         android:focusable ="true"
         android:focusableInTouchMode="true"/>
 
-    <ImageButton
+    <ImageView
         android:id="@+id/pre"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:src="@android:drawable/ic_media_previous"
-        android:layout_weight="1"
-        android:background="#dd00dd"/>
+        android:layout_weight="1"/>
 
-    <ImageButton
+    <ImageView
         android:id="@+id/playandpause"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginLeft="10dp"
         android:layout_marginRight="10dp"
         android:layout_weight="1"
-        android:background="#dd00dd"
         android:src="@android:drawable/ic_media_play" />
 
-    <ImageButton
+    <ImageView
         android:id="@+id/next"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginRight="10dp"
         android:layout_weight="1"
-        android:background="#dd00dd"
         android:src="@android:drawable/ic_media_next" />
 
     <ImageView

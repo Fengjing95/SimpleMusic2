@@ -6,6 +6,7 @@ import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
@@ -17,11 +18,13 @@ import android.os.Message;
 import android.util.Log;
 
 import com.example.musicplayer.ActivityController;
+
 import androidx.annotation.RequiresApi;
 
 import com.example.musicplayer.ActivityController;
 import com.example.musicplayer.AppConstant;
 import com.example.musicplayer.MusicDTO;
+import com.example.musicplayer.activity.MainActivity;
 import com.example.musicplayer.enums.MusicType;
 
 import org.litepal.LitePal;
@@ -44,8 +47,28 @@ public class MusicService extends Service {
     private int playMode;  // 播放模式
     private SharedPreferences spf;
 
+    private PlayerReceiver receiver;
+
     @Override
     public void onCreate() {
+        receiver = new PlayerReceiver();
+        IntentFilter filterPlay = new IntentFilter();
+        filterPlay.addAction("play_play");
+        registerReceiver(receiver, filterPlay);
+
+        IntentFilter filterPre = new IntentFilter();
+        filterPre.addAction("play_pre");
+        registerReceiver(receiver, filterPre);
+
+        IntentFilter filterNext = new IntentFilter();
+        filterNext.addAction("play_next");
+        registerReceiver(receiver, filterNext);
+
+        IntentFilter filterClose = new IntentFilter();
+        filterClose.addAction("close");
+        registerReceiver(receiver, filterClose);
+
+
         super.onCreate();
         initPlayList();     //初始化播放列表
         listenerList = new ArrayList<>();    //初始化监听器列表
@@ -53,6 +76,8 @@ public class MusicService extends Service {
         player.setOnCompletionListener(onCompletionListener);   //设置播放完成的监听器
         binder = new MusicServiceBinder();
         audioManager = (AudioManager) getSystemService(AUDIO_SERVICE); //获得音频管理服务
+
+
     }
 
     // 初始化播放列表
@@ -172,6 +197,7 @@ public class MusicService extends Service {
             listenerList.remove(l);
         }
     }
+
     //添加音乐到播放列表，并保存到数据库中
     private void addPlayListInner(MusicDTO music) {
         if (!playingMusicList.contains(music)) {
@@ -184,6 +210,7 @@ public class MusicService extends Service {
         isNeedReload = true;
         playInner();
     }
+
     //添加音乐列表到播放列表，并保存到数据库中
     private void addPlayListInner(List<MusicDTO> musicList) {
         playingMusicList.clear();
@@ -198,6 +225,7 @@ public class MusicService extends Service {
         currentMusic = playingMusicList.get(0);
         playInner();
     }
+
     //移除播放列表中的某个音乐，并在数据库中删除
     private void removeMusicInner(int i) {
         LitePal.deleteAll(MusicDTO.class, "title=?", playingMusicList.get(i).getTitle());
@@ -226,8 +254,9 @@ public class MusicService extends Service {
 
 
     }
+
     //暂停音乐
-    private void pauseInner(){
+    private void pauseInner() {
         player.pause();
 
         for (OnStateChangeListener l : listenerList) {
@@ -236,8 +265,9 @@ public class MusicService extends Service {
         // 暂停后不需要重新加载
         isNeedReload = false;
     }
+
     //播放上一首
-    private void playPreInner(){
+    private void playPreInner() {
         //获取当前播放（或者被加载）音乐的上一首音乐
         //如果前面有要播放的音乐，把那首音乐设置成要播放的音乐
         int currentIndex = playingMusicList.indexOf(currentMusic);
@@ -247,10 +277,11 @@ public class MusicService extends Service {
             playInner();
         }
     }
+
     //播放下一首
     private void playNextInner() {
 
-        if (playMode == AppConstant.TYPE_RANDOM){
+        if (playMode == AppConstant.TYPE_RANDOM) {
             //随机播放
             int i = (int) (0 + Math.random() * (playingMusicList.size() + 1));
             currentMusic = playingMusicList.get(i);
@@ -266,29 +297,35 @@ public class MusicService extends Service {
         isNeedReload = true;
         playInner();
     }
+
     //将音乐拖动到指定时间
     private void seekToInner(int pos) {
         //将音乐拖动到指定的时间
         player.seekTo(pos);
     }
+
     //获取当前播放的音乐
     private MusicDTO getCurrentMusicInner() {
         return currentMusic;
     }
+
     //当前播放器是否在播放
     private boolean isPlayingInner() {
         return player.isPlaying();
     }
+
     //获取播放列表
     public List<MusicDTO> getPlayingListInner() {
         return playingMusicList;
     }
+
     //获取播放模式
-    private int getPlayModeInner(){
+    private int getPlayModeInner() {
         return playMode;
     }
+
     //设置播放模式
-    private void setPlayModeInner(int mode){
+    private void setPlayModeInner(int mode) {
         playMode = mode;
     }
 
@@ -327,35 +364,38 @@ public class MusicService extends Service {
         handler.sendEmptyMessage(AppConstant.MESSAGE_FLAG);
     }
 
+    public void receiverPlay() {
+        binder.playOrPause();
+    }
 
-    public static class PlayerReceiver extends BroadcastReceiver {
+    public void receiverPre() {
+        binder.playPre();
+    }
+    public void receiverNext() {
+        binder.playNext();
+    }
 
-        public static final String PLAY_PRE = "play_pre";
-        public static final String PLAY_NEXT = "play_next";
-        public static final String PLAY_PAUSE = "play_pause";
-        public static final String PLAY_PLAY = "play_play";
-        public static final String CLOSE = "close";
-
-        public MusicServiceBinder serviceBinder;
+    public class PlayerReceiver extends BroadcastReceiver {
 
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (PLAY_NEXT.equals(intent.getAction())) {//PLAY_NEXT
+            Log.e("PlayReceiver","test receiver");
+            if (AppConstant.PLAY_NEXT.equals(intent.getAction())) {//PLAY_NEXT
                 Log.e("PlayerReceiver", "通知栏点击了下一首");
-                serviceBinder.playNext();
+                receiverNext();
             }
-            if (PLAY_PRE.equals(intent.getAction())) {
+            if (AppConstant.PLAY_PRE.equals(intent.getAction())) {
                 Log.e("PlayerReceiver", "通知栏点击了上一首");
-                serviceBinder.playPre();
+                receiverPre();
             }
-            if (PLAY_PAUSE.equals(intent.getAction())) {
-                Log.e("PlayerReceiver", "通知栏点击了暂停");
-            }
-            if (PLAY_PLAY.equals(intent.getAction())) {
+//            if (AppConstant.PLAY_PAUSE.equals(intent.getAction())) {
+//                Log.e("PlayerReceiver", "通知栏点击了暂停");
+//            }
+            if (AppConstant.PLAY_PLAY.equals(intent.getAction())) {
                 Log.e("PlayerReceiver", "通知栏点击了开始");
-                serviceBinder.playOrPause();
+                receiverPlay();
             }
-            if (CLOSE.equals(intent.getAction())) {
+            if (AppConstant.CLOSE.equals(intent.getAction())) {
                 Log.e("PlayerReceiver", "通知栏点击了close");
                 @SuppressLint("WrongConstant") NotificationManager manager =
                         (NotificationManager) context.getSystemService("notification");
