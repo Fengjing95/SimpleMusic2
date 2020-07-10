@@ -73,7 +73,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private static List<MusicDTO> musicList;
     private TextView navPhone;
     private MusicAdapter musicAdapter;
-    private SharedPreferences spf;
     private MusicService.MusicServiceBinder serviceBinder;
 
     @RequiresApi(api = Build.VERSION_CODES.N)
@@ -100,40 +99,34 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         initSettings();
 
         // 点击列表项播放音乐
-        musicListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                MusicDTO music = musicList.get(position);
-                serviceBinder.addPlayList(music);
-            }
+        musicListView.setOnItemClickListener((parent, view, position, id) -> {
+            MusicDTO music = musicList.get(position);
+            serviceBinder.addPlayList(music);
         });
 
         // 列表项中更多按钮的点击事件
-        musicAdapter.setOnMoreButtonListener(new MusicAdapter.onMoreButtonListener() {
-            @Override
-            public void onClick(final int i) {
-                final MusicDTO music = musicList.get(i);
+        musicAdapter.setOnMoreButtonListener(i -> {
+            final MusicDTO music = musicList.get(i);
 
-                //弹出操作对话框
-                final String[] items = new String[] {"添加到播放列表", "删除"};
-                AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-                builder.setTitle(music.getTitle()+"-"+music.getArtist());
+            //弹出操作对话框
+            final String[] items = new String[] {"添加到播放列表", "删除"};
+            AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+            builder.setTitle(music.getTitle()+"-"+music.getArtist());
 
-                builder.setItems(items, (dialog, which) -> {
-                    switch (which){
-                        case 0:
-                            serviceBinder.addPlayList(music);
-                            break;
-                        case 1:
-                            //从列表和数据库中删除
-                            musicList.remove(i);
-                            LitePal.deleteAll(MusicDTO.class, "title = ? and musicType = ?", music.getTitle(), "" + music.getMusicType());
-                            musicAdapter.notifyDataSetChanged();
-                            break;
-                    }
-                });
-                builder.create().show();
-            }
+            builder.setItems(items, (dialog, which) -> {
+                switch (which){
+                    case 0:
+                        serviceBinder.addPlayList(music);
+                        break;
+                    case 1:
+                        //从列表和数据库中删除
+                        musicList.remove(i);
+                        LitePal.deleteAll(MusicDTO.class, "title = ? and musicType = ?", music.getTitle(), "" + music.getMusicType());
+                        musicAdapter.notifyDataSetChanged();
+                        break;
+                }
+            });
+            builder.create().show();
         });
     }
 
@@ -214,22 +207,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     // 读取配置
     private void initSettings(){
-        spf = getSharedPreferences("settings", MODE_PRIVATE);
         //累计听歌数量
         musicCountView.setText("累计听歌"+ Utils.MUSIC_CACHE.size() +"首");
-    }
-
-    // 保存配置
-    private void saveSettings(){
-        SharedPreferences.Editor editor = spf.edit();
-
-        //累计听歌数量
-        editor.putInt("listen_count", Utils.MUSIC_CACHE.size());
-        // 播放模式
-        int mode = serviceBinder.getPlayMode();
-        editor.putInt("play_mode", mode);
-
-        editor.apply();
     }
 
     // 设置侧边栏
@@ -381,8 +360,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
             }
 
-            int mode = spf.getInt("play_mode", AppConstant.TYPE_ORDER);
-            serviceBinder.setPlayMode(mode);
+            // 启动时候的播放模式
+            serviceBinder.setPlayMode(AppConstant.TYPE_ORDER);
         }
         @Override
         public void onServiceDisconnected(ComponentName name) {
@@ -439,14 +418,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         music.setMusicType(MusicType.ONLINE_MUSIC);
         music.save();
     }
-
-//    // 对外接口, 插入多首歌曲
-//    public static void addMymusic(List<Music> lists){
-//
-//        for (Music item:lists){
-//            addMymusic(item);
-//        }
-//    }
 
 
     private String createNotificationChannel(String channelID, String channelNAME, int level) {
@@ -564,6 +535,5 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         musicList.clear();
         Glide.with(getApplicationContext()).pauseAllRequests();
         unbindService(serviceConnection);
-        saveSettings();
     }
 }
