@@ -3,7 +3,6 @@ package com.example.musicplayer.activity;
 import android.annotation.SuppressLint;
 import android.content.ComponentName;
 import android.content.ContentResolver;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.graphics.Bitmap;
@@ -61,7 +60,7 @@ public class OnlineMusicActivity extends AppCompatActivity implements View.OnCli
     private ImageView playingImgView;
     private ImageView btnPlayOrPause;
 
-    private List<MusicDTO> onlinemusic_list;
+    private List<MusicDTO> onlineMusicList;
     private MusicService.MusicServiceBinder serviceBinder;
     private MusicAdapter adapter;
 
@@ -86,39 +85,42 @@ public class OnlineMusicActivity extends AppCompatActivity implements View.OnCli
                 if (AppConstant.UPDATE_MUSIC == msg.what) {
                     //更新一首歌曲
                     MusicDTO music = (MusicDTO) msg.obj;
-                    onlinemusic_list.add(music);
+                    onlineMusicList.add(music);
                     adapter.notifyDataSetChanged();
-                    musicCountView.setText("播放全部(共" + onlinemusic_list.size() + "首)");
+                    musicCountView.setText("播放全部(共" + onlineMusicList.size() + "首)");
                 }
             }
         };
 
         // 列表项点击事件
         musicListView.setOnItemClickListener((parent, view, position, id) -> {
-            MusicDTO music = onlinemusic_list.get(position);
+            MusicDTO music = onlineMusicList.get(position);
             serviceBinder.addPlayList(music);
         });
 
         //列表项中更多按钮的点击事件
         adapter.setOnMoreButtonListener(i -> {
-            final MusicDTO music = onlinemusic_list.get(i);
+            final MusicDTO music = onlineMusicList.get(i);
             final String[] items = new String[] {"收藏到我的音乐", "添加到播放列表", "删除"};
             AlertDialog.Builder builder = new AlertDialog.Builder(OnlineMusicActivity.this);
             builder.setTitle(music.getTitle()+"-"+music.getArtist());
 
             builder.setItems(items, (dialog, which) -> {
                 switch (which){
+                    // 收藏
                     case 0:
                         MainActivity.addMymusic(music);
                         break;
+                    // 添加到播放列表
                     case 1:
                         serviceBinder.addPlayList(music);
                         break;
+                    // 刪除
                     case 2:
-                        //从列表中删除
-                        onlinemusic_list.remove(i);
+                        // 每次加载都会重新加载，所以此项功能无太大用处.单纯是为了适配
+                        onlineMusicList.remove(i);
                         adapter.notifyDataSetChanged();
-                        musicCountView.setText("播放全部(共"+onlinemusic_list.size()+"首)");
+                        musicCountView.setText("播放全部(共"+ onlineMusicList.size()+"首)");
                         break;
                 }
             });
@@ -132,7 +134,7 @@ public class OnlineMusicActivity extends AppCompatActivity implements View.OnCli
     public void onClick(View v) {
         switch (v.getId()){
             case R.id.play_all:
-                serviceBinder.addPlayList(onlinemusic_list);
+                serviceBinder.addPlayList(onlineMusicList);
                 break;
             case R.id.player:
                 Intent intent = new Intent(OnlineMusicActivity.this, PlayerActivity.class);
@@ -152,7 +154,7 @@ public class OnlineMusicActivity extends AppCompatActivity implements View.OnCli
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        onlinemusic_list.clear();
+        onlineMusicList.clear();
         unbindService(mServiceConnection);
         client.dispatcher().cancelAll();
     }
@@ -160,7 +162,7 @@ public class OnlineMusicActivity extends AppCompatActivity implements View.OnCli
     // 初始化活动
     private void initActivity(){
         //初始化控件
-        ImageView btn_playAll = this.findViewById(R.id.play_all);
+        ImageView btnPlayAll = this.findViewById(R.id.play_all);
         musicCountView = this.findViewById(R.id.play_all_title);
         musicListView = this.findViewById(R.id.music_list);
         RelativeLayout playerToolView = this.findViewById(R.id.player);
@@ -171,7 +173,7 @@ public class OnlineMusicActivity extends AppCompatActivity implements View.OnCli
         ImageView btn_playingList = this.findViewById(R.id.playing_list);
 
         // 设置监听
-        btn_playAll.setOnClickListener(this);
+        btnPlayAll.setOnClickListener(this);
         playerToolView.setOnClickListener(this);
         btnPlayOrPause.setOnClickListener(this);
         btn_playingList.setOnClickListener(this);
@@ -193,10 +195,10 @@ public class OnlineMusicActivity extends AppCompatActivity implements View.OnCli
                 .build();
 
         // 获取在线音乐
-        onlinemusic_list = new ArrayList<>();
-        adapter = new MusicAdapter(this, R.layout.music_item, onlinemusic_list);
+        onlineMusicList = new ArrayList<>();
+        adapter = new MusicAdapter(this, R.layout.music_item, onlineMusicList);
         musicListView.setAdapter(adapter);
-        musicCountView.setText("播放全部(共"+onlinemusic_list.size()+"首)");
+        musicCountView.setText("播放全部(共"+ onlineMusicList.size()+"首)");
         getOlineMusic();
     }
 
@@ -241,7 +243,7 @@ public class OnlineMusicActivity extends AppCompatActivity implements View.OnCli
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
 
-            //绑定成功后，取得MusicSercice提供的接口
+            //绑定成功后，取得MusicService提供的接口
             serviceBinder = (MusicService.MusicServiceBinder) service;
 
             //注册监听器
@@ -375,7 +377,6 @@ public class OnlineMusicActivity extends AppCompatActivity implements View.OnCli
                         message.what = AppConstant.UPDATE_MUSIC;
                         message.obj = music;
                         mainHanlder.sendMessage(message);
-                        Thread.sleep(30);
                     }
                 }
                 catch (Exception ignored){}

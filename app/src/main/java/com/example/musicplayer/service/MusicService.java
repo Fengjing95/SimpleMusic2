@@ -19,12 +19,8 @@ import android.util.Log;
 
 import com.example.musicplayer.ActivityController;
 
-import androidx.annotation.RequiresApi;
-
-import com.example.musicplayer.ActivityController;
 import com.example.musicplayer.AppConstant;
 import com.example.musicplayer.MusicDTO;
-import com.example.musicplayer.activity.MainActivity;
 import com.example.musicplayer.enums.MusicType;
 
 import org.litepal.LitePal;
@@ -38,7 +34,7 @@ public class MusicService extends Service {
 
     private MediaPlayer player;
     private List<MusicDTO> playingMusicList;
-    private List<OnStateChangeListener> listenerList;//为什么是个列表呢，因为有多个界面（activity），每个activity中都有音乐的播放状态，当音乐是暂停或者播放的时候要对全部界面进行修改
+    private List<OnStateChangeListener> listenerList;
     private MusicServiceBinder binder;
     private AudioManager audioManager;
     private MusicDTO currentMusic; // 当前就绪的音乐
@@ -76,8 +72,6 @@ public class MusicService extends Service {
         player.setOnCompletionListener(onCompletionListener);   //设置播放完成的监听器
         binder = new MusicServiceBinder();
         audioManager = (AudioManager) getSystemService(AUDIO_SERVICE); //获得音频管理服务
-
-
     }
 
     // 初始化播放列表
